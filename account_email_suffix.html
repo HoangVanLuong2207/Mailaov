@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tạo danh sách user|pass|email</title>
+  <style>
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5568d3;
+      --bg: #f4f6fb;
+      --text: #222;
+      --muted: #666;
+      --ok: #22c55e;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .card {
+      width: min(920px, calc(100vw - 28px));
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      padding: 20px 20px 16px;
+      margin: 18px 14px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      color: #333;
+    }
+    .desc { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .full { grid-column: 1 / -1; }
+    label { font-weight: 600; margin-bottom: 6px; display: inline-block; }
+    textarea, input[type=text] {
+      width: 100%;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .2s ease;
+      background: #fafafa;
+    }
+    textarea:focus, input[type=text]:focus { border-color: var(--primary); background: #fff; }
+    textarea { min-height: 220px; resize: vertical; }
+    .row { display: flex; align-items: center; gap: 10px; }
+    .grow { flex: 1; }
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .08s ease, background .2s ease, box-shadow .2s ease;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35); }
+    .btn { background: #eef2ff; color: #333; }
+    .btn:hover { background: #e0e7ff; }
+    .note { font-size: 12px; color: var(--muted); }
+    .stat { margin-top: 8px; font-size: 12px; color: var(--muted); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .right { text-align: right; }
+    .cbx { display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+  </style>
+  <script>
+    function parseLines(raw) {
+      const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const items = [];
+      const invalid = [];
+      for (const ln of lines) {
+        let i1 = ln.indexOf(':');
+        let i2 = ln.indexOf('|');
+        let idx = -1;
+        if (i1 === -1 && i2 === -1) {
+          invalid.push(ln);
+          continue;
+        }
+        if (i1 === -1) idx = i2; else if (i2 === -1) idx = i1; else idx = Math.min(i1, i2);
+        const user = ln.slice(0, idx).trim();
+        const pass = ln.slice(idx + 1).trim();
+        if (!user || !pass) { invalid.push(ln); continue; }
+        items.push({ user, pass, key: `${user}|${pass}` });
+      }
+      return { items, invalid };
+    }
+
+    // Chuyển từ danh sách user|pass (hoặc user:pass)
+    // sang từng dòng JSON theo dạng {"u":"user","p":"pass"}
+    function toJsonUP() {
+      const input = document.getElementById('input').value;
+      const dedupe = document.getElementById('dedupe').checked;
+
+      const { items, invalid } = parseLines(input);
+      let arr = items;
+      if (dedupe) {
+        const seen = new Set();
+        arr = items.filter(it => {
+          if (seen.has(it.key)) return false;
+          seen.add(it.key);
+          return true;
+        });
+      }
+
+      const outLines = arr.map(({user, pass}) => JSON.stringify({ u: user, p: pass }));
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Đầu vào: ${items.length}</span>
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        ${invalid.length ? `<span class=\"badge badge-err\">Bỏ qua: ${invalid.length}</span>` : ''}
+      `;
+    }
+
+    function generate() {
+      const input = document.getElementById('input').value;
+      let domain = document.getElementById('domain').value.trim();
+      const dedupe = document.getElementById('dedupe').checked;
+
+      if (!domain) {
+        alert('Vui lòng nhập đuôi email (domain), ví dụ: batdongsanvgp.com');
+        return;
+      }
+      if (domain.startsWith('@')) domain = domain.slice(1);
+
+      const { items, invalid } = parseLines(input);
+      let arr = items;
+      if (dedupe) {
+        const seen = new Set();
+        arr = items.filter(it => {
+          if (seen.has(it.key)) return false;
+          seen.add(it.key);
+          return true;
+        });
+      }
+
+      const outLines = arr.map(({user, pass}) => `${user}|${pass}|${user}@${domain}`);
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Đầu vào: ${items.length}</span>
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        ${invalid.length ? `<span class=\"badge badge-err\">Bỏ qua: ${invalid.length}</span>` : ''}
+      `;
+    }
+
+    async function copyOut() {
+      const txt = document.getElementById('output').value;
+      if (!txt) return;
+      try {
+        await navigator.clipboard.writeText(txt);
+        toast('Đã copy kết quả vào clipboard');
+      } catch (e) {
+        fallbackCopyTextToClipboard(txt);
+      }
+    }
+
+    function fallbackCopyTextToClipboard(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try { document.execCommand('copy'); toast('Đã copy kết quả vào clipboard'); } catch (err) {}
+      document.body.removeChild(textArea);
+    }
+
+    function downloadOut() {
+      const txt = document.getElementById('output').value || '';
+      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'accounts_with_email.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Tạo chuỗi user[số]|pass từ khoảng số (không có dấu +)
+    function generateSeq() {
+      const baseUser = (document.getElementById('seqUser')?.value || '').trim();
+      const basePass = (document.getElementById('seqPass')?.value || '').toString();
+      const startStr = (document.getElementById('seqStart')?.value || '').trim();
+      const endStr = (document.getElementById('seqEnd')?.value || '').trim();
+
+      if (!baseUser) { alert('Vui lòng nhập user gốc'); return; }
+      if (!basePass) { alert('Vui lòng nhập mật khẩu'); return; }
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (Number.isNaN(start) || Number.isNaN(end)) {
+        alert('Vui lòng nhập số bắt đầu/kết thúc hợp lệ');
+        return;
+      }
+
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      const total = to - from + 1;
+      const MAX = 200000; // chặn tạo quá lớn để tránh treo trình duyệt
+      if (total > MAX) {
+        alert(`Khoảng số quá lớn (${total}). Vui lòng nhập <= ${MAX}.`);
+        return;
+      }
+
+      // Nếu người dùng nhập số có 0 ở đầu (vd: 001), sẽ giữ padding đó
+      const startHasPad = /^0\d+$/.test(startStr);
+      const endHasPad = /^0\d+$/.test(endStr);
+      const width = Math.max(startHasPad ? startStr.length : 0, endHasPad ? endStr.length : 0);
+
+      const outLines = [];
+      for (let i = from; i <= to; i++) {
+        const numStr = width > 0 ? String(i).padStart(width, '0') : String(i);
+        outLines.push(`${baseUser}${numStr}|${basePass}`);
+      }
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        <span class="badge badge-ok">Phạm vi: ${from} → ${to}</span>
+      `;
+    }
+
+    function clearAll() {
+      document.getElementById('input').value = '';
+      document.getElementById('output').value = '';
+      document.getElementById('stat').innerHTML = '';
+    }
+
+    function toast(msg) {
+      let el = document.getElementById('toast');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'toast';
+        el.style.position = 'fixed';
+        el.style.bottom = '16px';
+        el.style.right = '16px';
+        el.style.padding = '10px 14px';
+        el.style.background = '#111827';
+        el.style.color = '#fff';
+        el.style.borderRadius = '8px';
+        el.style.boxShadow = '0 6px 20px rgba(0,0,0,.25)';
+        document.body.appendChild(el);
+      }
+      el.textContent = msg;
+      el.style.opacity = '1';
+      setTimeout(() => { el.style.transition = 'opacity .6s'; el.style.opacity = '0'; }, 1200);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Ctrl+Enter để tạo nhanh
+      document.getElementById('input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          generate();
+        }
+      });
+    });
+  </script>
+  </head>
+<body>
+  <div class="card">
+    <h1>Tạo danh sách user|pass|user@đuôi</h1>
+    <div class="desc">Nhập list tài khoản theo dạng <b>user:pass</b> hoặc <b>user|pass</b> và đuôi email (domain), công cụ sẽ trả về <b>user|pass|user@domain</b>.</div>
+
+    <div class="grid">
+      <div class="full">
+        <label for="input">Danh sách tài khoản</label>
+        <textarea id="input" placeholder="vd:\nuser1:pass1\nuser2|pass2\n..."></textarea>
+      </div>
+
+      <div class="row full">
+        <div class="grow">
+          <label for="domain">Đuôi email (domain)</label>
+          <input id="domain" type="text" placeholder="vd: batdongsanvgp.com" />
+          <div class="note">Không cần nhập ký tự @. Ví dụ đầu ra một dòng: user|pass|user@batdongsanvgp.com</div>
+        </div>
+        <label class="cbx"><input id="dedupe" type="checkbox" checked /> Bỏ trùng theo user|pass</label>
+      </div>
+
+      <div class="full">
+        <hr style="border:none;border-top:1px solid #eee;margin:8px 0 12px;" />
+        <label>Tạo chuỗi theo khoảng: user số|pass</label>
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <label for="seqUser">User (gốc)</label>
+            <input id="seqUser" type="text" placeholder="vd: user" />
+          </div>
+          <div>
+            <label for="seqPass">Mật khẩu</label>
+            <input id="seqPass" type="text" placeholder="vd: pass123" />
+          </div>
+          <div>
+            <label for="seqStart">Số bắt đầu</label>
+            <input id="seqStart" type="text" inputmode="numeric" placeholder="vd: 1" />
+          </div>
+          <div>
+            <label for="seqEnd">Số kết thúc</label>
+            <input id="seqEnd" type="text" inputmode="numeric" placeholder="vd: 100" />
+          </div>
+        </div>
+        <div class="btns">
+          <button class="btn-primary" onclick="generateSeq()">Tạo chuỗi user số|pass</button>
+          <span class="note">Ví dụ: user1|pass (hoặc user001|pass nếu nhập 001)</span>
+        </div>
+      </div>
+
+      <div class="btns full">
+        <button class="btn-primary" onclick="generate()">Tạo danh sách</button>
+        <button class="btn" onclick="toJsonUP()">Chuyển sang JSON {u,p}</button>
+        <button class="btn" onclick="copyOut()">Copy kết quả</button>
+        <button class="btn" onclick="downloadOut()">Tải .txt</button>
+        <button class="btn" onclick="clearAll()">Xóa nội dung</button>
+      </div>
+
+      <div class="full">
+        <label for="output">Kết quả</label>
+        <textarea id="output" placeholder="Kết quả sẽ hiện tại đây" readonly></textarea>
+        <div id="stat" class="stat right"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
