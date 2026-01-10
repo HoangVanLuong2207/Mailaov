@@ -29,6 +29,11 @@ console.log('🔧 Using PORT =', PORT);
 // Serve static file (index.html) trong cùng thư mục
 app.use(express.static(__dirname));
 
+// Explicitly serve index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Helper: safe reply to avoid throwing when client disconnected
 function safeReply(res, status, body) {
   try {
