@@ -233,6 +233,10 @@
   </div>
 
   <script>
+    // Lưu mã hiện tại để kiểm tra trùng lặp
+    let currentCode = null;
+    const MAX_RETRY = 3; // Số lần thử tối đa khi mã trùng
+
     function addLog(message, type = 'info') {
       const logDiv = document.getElementById('log');
       const timestamp = new Date().toLocaleTimeString();
@@ -300,31 +304,77 @@
       }
     }
 
-    async function fetchCode() {
+    // Hàm tự động copy mã (không cần element, truyền code trực tiếp)
+    async function autoCopyCode(code) {
+      const btnCopy = document.getElementById('btn-copy');
+      let copied = false;
+
+      // Thử Clipboard API trước
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+          copied = true;
+        }
+      } catch (err) {
+        // Clipboard API thất bại, sẽ dùng fallback
+      }
+
+      // Fallback: dùng execCommand (hoạt động khi không focus)
+      if (!copied) {
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          copied = document.execCommand('copy');
+          document.body.removeChild(textarea);
+        } catch (err) {
+          addLog('⚠️ Tự động copy thất bại: ' + err.message, 'info');
+          return;
+        }
+      }
+
+      if (copied) {
+        addLog(`📋 Tự động copy mã: ${code}`, 'success');
+        btnCopy.textContent = 'Đã copy ✔';
+        setTimeout(() => {
+          btnCopy.textContent = 'Copy mã';
+        }, 1500);
+      }
+    }
+
+    async function fetchCode(retryCount = 0) {
       const username = document.getElementById('username').value.trim();
       const btnText = document.getElementById('btn-text');
       const btn = document.querySelector('.btn-primary');
       const btnCopy = document.getElementById('btn-copy');
-      const originalText = btnText.textContent;
+      const originalText = 'Lấy Mã Xác Minh';
 
       if (!username) {
         showResult('❌ Vui lòng nhập username!', 'error');
         return;
       }
 
-      // Không xóa log username
-      document.getElementById('result').classList.remove('show');
-      btnCopy.disabled = true; // Đang xử lý thì tắt copy
-      addLog(`Username: ${username}`, 'info');
+      // Chỉ reset giao diện khi lần đầu gọi (không phải retry)
+      if (retryCount === 0) {
+        document.getElementById('result').classList.remove('show');
+        btnCopy.disabled = true;
+        addLog(`Username: ${username}`, 'info');
+      }
 
-      btnText.innerHTML = '<span class="loading"></span>Đang xử lý...';
+      btnText.innerHTML = retryCount > 0
+        ? `<span class="loading"></span>Retry lần ${retryCount}...`
+        : '<span class="loading"></span>Đang xử lý...';
       btn.disabled = true;
 
       const email = `${username}@batdongsanvgp.com`;
       const apiUrl = `/api/get-code?username=${encodeURIComponent(username)}`;
 
       try {
-        addLog(`Gọi backend: ${apiUrl}`, 'info');
+        addLog(`Gọi backend: ${apiUrl}${retryCount > 0 ? ` (retry ${retryCount})` : ''}`, 'info');
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -371,8 +421,25 @@
           }
 
           if (code) {
-            addLog(`✓ Tìm thấy mã: ${code}`, 'success');
+            // Kiểm tra mã mới có trùng với mã cũ không
+            if (currentCode !== null && code === currentCode && retryCount < MAX_RETRY) {
+              addLog(`⚠️ Mã "${code}" trùng với mã hiện tại, tự động lấy lại...`, 'info');
+              // Đợi 1 giây rồi retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return fetchCode(retryCount + 1);
+            }
+
+            // Cập nhật mã hiện tại
+            currentCode = code;
+
+            if (retryCount > 0) {
+              addLog(`✓ Tìm thấy mã mới: ${code} (sau ${retryCount} lần retry)`, 'success');
+            } else {
+              addLog(`✓ Tìm thấy mã: ${code}`, 'success');
+            }
             showResult(`✅ Mã xác minh cho ${email}`, 'success', code);
+            // Tự động copy mã vào clipboard
+            await autoCopyCode(code);
           } else {
             addLog('❌ Không tìm thấy mã 8 chữ số', 'error');
             showResult('❌ Không tìm thấy mã xác minh trong email', 'error');
