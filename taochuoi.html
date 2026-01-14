@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credentials Management Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: #f5f5f5;
+            font-weight: 500;
+            transition: all 0.3s;
+            min-width: 150px;
+        }
+
+        .nav-tab:hover {
+            background: #eeeeee;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 250px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea:read-only {
+            background: #f9f9f9;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            font-size: 14px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .btn-copy {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-copy:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .btn-clear {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .stats {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .output-section {
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Credentials Management Tools</h1>
+            <p>Công cụ quản lý và xử lý danh sách thông tin đăng nhập</p>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('tool1')">🔄 Lọc user|pass</button>
+            <button class="nav-tab" onclick="switchTab('tool2')">🔍 So Sánh Danh Sách</button>
+            <button class="nav-tab" onclick="switchTab('tool3')">📝 Lọc user|newpass</button>
+            <button class="nav-tab" onclick="switchTab('tool4')">🗑️ Xóa Theo Prefix</button>
+        </div>
+
+        <!-- TAB 1: Lọc user|pass từ user|pass|newpass -->
+        <div class="tab-content active" id="tool1">
+            <div class="section">
+                <h2>📥 Dữ liệu đầu vào (user|pass|newpass)</h2>
+                <textarea id="tool1Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="tool1_process()">🔄 Lọc dữ liệu</button>
+                    <button class="btn-clear" onclick="tool1_clear()">🗑️ Xóa input</button>
+                </div>
+            </div>
+
+            <div id="tool1Message"></div>
+
+            <div class="section">
+                <h2>📊 Thống kê</h2>
+                <div class="stats" id="tool1Stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool1Total">0</div>
+                        <div class="stat-label">Tổng dòng</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool1Valid">0</div>
+                        <div class="stat-label">Dòng hợp lệ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool1Error">0</div>
+                        <div class="stat-label">Dòng lỗi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📤 Kết quả (user|pass)</h2>
+                <textarea id="tool1Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool1_copy()">📋 Copy kết quả</button>
+                    <button class="btn-clear" onclick="tool1_clearOutput()">🗑️ Xóa output</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: So sánh danh sách -->
+        <div class="tab-content" id="tool2">
+            <div class="input-section">
+                <div class="section">
+                    <h2>📥 Danh sách 1: user|newpass</h2>
+                    <textarea id="tool2List1" placeholder="Dán danh sách user|newpass ở đây..."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool2_clearList(1)">🗑️ Xóa</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>📥 Danh sách 2: user|pass|newpass</h2>
+                    <textarea id="tool2List2" placeholder="Dán danh sách user|pass|newpass ở đây..."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool2_clearList(2)">🗑️ Xóa</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="tool2_match()">🔍 So Sánh & Tìm Khớp</button>
+            </div>
+
+            <div id="tool2Message"></div>
+
+            <div class="stats" id="tool2Stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" id="tool2List1Count">0</div>
+                    <div class="stat-label">Dòng List 1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool2List2Count">0</div>
+                    <div class="stat-label">Dòng List 2</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool2MatchCount">0</div>
+                    <div class="stat-label">Dòng Khớp</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool2NotMatchCount">0</div>
+                    <div class="stat-label">Không Khớp</div>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool2OutputSection" style="display: none;">
+                <h2>✅ Kết Quả Khớp (user|pass|newpass)</h2>
+                <textarea id="tool2OutputMatched" placeholder="Các dòng khớp sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool2_copy('matched')">📋 Copy Kết Quả Khớp</button>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool2OutputSection2" style="display: none;">
+                <h2>❌ Dòng Không Khớp (user|newpass)</h2>
+                <textarea id="tool2OutputNotMatched" placeholder="Các dòng không khớp sẽ hiển thị ở đây..."
+                    readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool2_copy('notmatched')">📋 Copy Kết Quả Không Khớp</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Lọc user|newpass từ user|pass|newpass -->
+        <div class="tab-content" id="tool3">
+            <div class="section">
+                <h2>📥 Dữ liệu đầu vào (user|pass|newpass)</h2>
+                <textarea id="tool3Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
+                <div class="button-group">
+                    <button class="btn-primary" onclick="tool3_process()">🔄 Lọc dữ liệu</button>
+                    <button class="btn-clear" onclick="tool3_clear()">🗑️ Xóa input</button>
+                </div>
+            </div>
+
+            <div id="tool3Message"></div>
+
+            <div class="section">
+                <h2>📊 Thống kê</h2>
+                <div class="stats" id="tool3Stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool3Total">0</div>
+                        <div class="stat-label">Tổng dòng</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool3Valid">0</div>
+                        <div class="stat-label">Dòng hợp lệ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool3Error">0</div>
+                        <div class="stat-label">Dòng lỗi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📤 Kết quả (user|newpass)</h2>
+                <textarea id="tool3Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool3_copy()">📋 Copy kết quả</button>
+                    <button class="btn-clear" onclick="tool3_clearOutput()">🗑️ Xóa output</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Xóa theo prefix -->
+        <div class="tab-content" id="tool4">
+            <div class="input-section">
+                <div class="section">
+                    <h2>📥 Dữ liệu đầu vào</h2>
+                    <textarea id="tool4Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool4_clear()">🗑️ Xóa input</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>🔤 Prefix cần xóa</h2>
+                    <textarea id="tool4Prefix"
+                        placeholder="Nhập các prefix cần xóa, mỗi dòng một prefix. Ví dụ: dup., filx., vklh."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool4_clearPrefix()">🗑️ Xóa prefix</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="tool4_process()">🗑️ Xóa Dòng Theo Prefix</button>
+            </div>
+
+            <div id="tool4Message"></div>
+
+            <div class="section">
+                <h2>📊 Thống kê</h2>
+                <div class="stats" id="tool4Stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool4Total">0</div>
+                        <div class="stat-label">Tổng dòng</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool4Deleted">0</div>
+                        <div class="stat-label">Dòng xóa</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool4Remaining">0</div>
+                        <div class="stat-label">Dòng còn lại</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📤 Kết quả</h2>
+                <textarea id="tool4Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool4_copy()">📋 Copy kết quả</button>
+                    <button class="btn-clear" onclick="tool4_clearOutput()">🗑️ Xóa output</button>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <h2>📥 Dữ liệu đầu vào (user|pass|newpass)</h2>
+            <textarea id="tool3Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
+            <div class="button-group">
+                <button class="btn-primary" onclick="tool3_process()">🔄 Lọc dữ liệu</button>
+                <button class="btn-clear" onclick="tool3_clear()">🗑️ Xóa input</button>
+            </div>
+        </div>
+
+        <div id="tool3Message"></div>
+
+        <div class="section">
+            <h2>📊 Thống kê</h2>
+            <div class="stats" id="tool3Stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" id="tool3Total">0</div>
+                    <div class="stat-label">Tổng dòng</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool3Valid">0</div>
+                    <div class="stat-label">Dòng hợp lệ</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool3Error">0</div>
+                    <div class="stat-label">Dòng lỗi</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📤 Kết quả (user|newpass)</h2>
+            <textarea id="tool3Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
+            <div class="button-group">
+                <button class="btn-copy" onclick="tool3_copy()">📋 Copy kết quả</button>
+                <button class="btn-clear" onclick="tool3_clearOutput()">🗑️ Xóa output</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== TAB SWITCHING ====================
+        function switchTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.nav-tab');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ==================== HELPER FUNCTIONS ====================
+        function showMessage(elementId, text, type = 'info') {
+            const msgEl = document.getElementById(elementId);
+            msgEl.textContent = text;
+            msgEl.className = `message show ${type}`;
+            setTimeout(() => {
+                msgEl.classList.remove('show');
+            }, 4000);
+        }
+
+        // ==================== TOOL 1: user|pass|newpass → user|pass ====================
+        function tool1_process() {
+            const input = document.getElementById('tool1Input').value.trim();
+
+            if (!input) {
+                showMessage('tool1Message', '⚠️ Vui lòng nhập dữ liệu!', 'warning');
+                return;
+            }
+
+            const lines = input.split('\n');
+            const validLines = [];
+            let errorCount = 0;
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const parts = trimmedLine.split('|');
+
+                if (parts.length === 3) {
+                    const [user, pass, newpass] = parts;
+                    validLines.push(`${user}|${pass}`);
+                } else {
+                    errorCount++;
+                }
+            });
+
+            const totalValid = lines.filter(l => l.trim()).length;
+            document.getElementById('tool1Total').textContent = totalValid;
+            document.getElementById('tool1Valid').textContent = validLines.length;
+            document.getElementById('tool1Error').textContent = errorCount;
+            document.getElementById('tool1Stats').style.display = 'grid';
+            document.getElementById('tool1Output').value = validLines.join('\n');
+
+            showMessage('tool1Message', `✅ Lọc thành công! ${validLines.length} dòng hợp lệ${errorCount > 0 ? `, ${errorCount} dòng lỗi` : ''}`, 'success');
+        }
+
+        function tool1_copy() {
+            const output = document.getElementById('tool1Output');
+            if (!output.value) {
+                showMessage('tool1Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+            output.select();
+            document.execCommand('copy');
+            showMessage('tool1Message', '✅ Đã copy vào clipboard!', 'success');
+        }
+
+        function tool1_clear() {
+            document.getElementById('tool1Input').value = '';
+            document.getElementById('tool1Input').focus();
+        }
+
+        function tool1_clearOutput() {
+            document.getElementById('tool1Output').value = '';
+            document.getElementById('tool1Stats').style.display = 'none';
+            document.getElementById('tool1Total').textContent = '0';
+            document.getElementById('tool1Valid').textContent = '0';
+            document.getElementById('tool1Error').textContent = '0';
+        }
+
+        // ==================== TOOL 2: So sánh danh sách ====================
+        function tool2_clearList(num) {
+            document.getElementById(`tool2List${num}`).value = '';
+            document.getElementById(`tool2List${num}`).focus();
+        }
+
+        function tool2_match() {
+            const list1Text = document.getElementById('tool2List1').value.trim();
+            const list2Text = document.getElementById('tool2List2').value.trim();
+
+            if (!list1Text || !list2Text) {
+                showMessage('tool2Message', '⚠️ Vui lòng nhập dữ liệu vào cả hai danh sách!', 'warning');
+                return;
+            }
+
+            // Parse list 1 (user|newpass)
+            const list1 = {};
+            const list1Lines = list1Text.split('\n').filter(l => l.trim());
+
+            list1Lines.forEach(line => {
+                const trimmed = line.trim();
+                const parts = trimmed.split('|');
+                if (parts.length === 2) {
+                    const [user, newpass] = parts;
+                    list1[`${user}|${newpass}`] = true;
+                }
+            });
+
+            // Parse list 2 (user|pass|newpass)
+            const list2Lines = list2Text.split('\n').filter(l => l.trim());
+            const matched = [];
+            const notMatched = [];
+
+            list2Lines.forEach(line => {
+                const trimmed = line.trim();
+                const parts = trimmed.split('|');
+                if (parts.length === 3) {
+                    const [user, pass, newpass] = parts;
+                    const key = `${user}|${newpass}`;
+
+                    if (list1[key]) {
+                        matched.push(trimmed);
+                    } else {
+                        notMatched.push(key);
+                    }
+                }
+            });
+
+            document.getElementById('tool2List1Count').textContent = list1Lines.length;
+            document.getElementById('tool2List2Count').textContent = list2Lines.length;
+            document.getElementById('tool2MatchCount').textContent = matched.length;
+            document.getElementById('tool2NotMatchCount').textContent = notMatched.length;
+            document.getElementById('tool2Stats').style.display = 'grid';
+
+            document.getElementById('tool2OutputMatched').value = matched.join('\n');
+            document.getElementById('tool2OutputNotMatched').value = notMatched.join('\n');
+            document.getElementById('tool2OutputSection').style.display = 'block';
+            document.getElementById('tool2OutputSection2').style.display = 'block';
+
+            const percentage = list2Lines.length > 0 ? ((matched.length / list2Lines.length) * 100).toFixed(2) : 0;
+            showMessage('tool2Message', `✅ Hoàn tất! Tìm được ${matched.length}/${list2Lines.length} dòng khớp (${percentage}%)`, 'success');
+        }
+
+        function tool2_copy(type) {
+            const outputEl = type === 'matched' ?
+                document.getElementById('tool2OutputMatched') :
+                document.getElementById('tool2OutputNotMatched');
+
+            if (!outputEl.value) {
+                showMessage('tool2Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+
+            outputEl.select();
+            document.execCommand('copy');
+            showMessage('tool2Message', `✅ Đã copy ${type === 'matched' ? 'kết quả khớp' : 'kết quả không khớp'} vào clipboard!`, 'success');
+        }
+
+        // ==================== TOOL 3: user|pass|newpass → user|newpass ====================
+        function tool3_process() {
+            const input = document.getElementById('tool3Input').value.trim();
+
+            if (!input) {
+                showMessage('tool3Message', '⚠️ Vui lòng nhập dữ liệu!', 'warning');
+                return;
+            }
+
+            const lines = input.split('\n');
+            const validLines = [];
+            let errorCount = 0;
+
+            lines.forEach((line, index) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                const parts = trimmedLine.split('|');
+
+                if (parts.length === 3) {
+                    const [user, pass, newpass] = parts;
+                    validLines.push(`${user}|${newpass}`);
+                } else {
+                    errorCount++;
+                }
+            });
+
+            const totalValid = lines.filter(l => l.trim()).length;
+            document.getElementById('tool3Total').textContent = totalValid;
+            document.getElementById('tool3Valid').textContent = validLines.length;
+            document.getElementById('tool3Error').textContent = errorCount;
+            document.getElementById('tool3Stats').style.display = 'grid';
+            document.getElementById('tool3Output').value = validLines.join('\n');
+
+            showMessage('tool3Message', `✅ Lọc thành công! ${validLines.length} dòng hợp lệ${errorCount > 0 ? `, ${errorCount} dòng lỗi` : ''}`, 'success');
+        }
+
+        function tool3_copy() {
+            const output = document.getElementById('tool3Output');
+            if (!output.value) {
+                showMessage('tool3Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+            output.select();
+            document.execCommand('copy');
+            showMessage('tool3Message', '✅ Đã copy vào clipboard!', 'success');
+        }
+
+        function tool3_clear() {
+            document.getElementById('tool3Input').value = '';
+            document.getElementById('tool3Input').focus();
+        }
+
+        function tool3_clearOutput() {
+            document.getElementById('tool3Output').value = '';
+            document.getElementById('tool3Stats').style.display = 'none';
+            document.getElementById('tool3Total').textContent = '0';
+            document.getElementById('tool3Valid').textContent = '0';
+            document.getElementById('tool3Error').textContent = '0';
+        }
+
+        // ==================== TOOL 4: Xóa theo prefix ====================
+        function tool4_process() {
+            const input = document.getElementById('tool4Input').value.trim();
+            const prefixInput = document.getElementById('tool4Prefix').value.trim();
+
+            if (!input) {
+                showMessage('tool4Message', '⚠️ Vui lòng nhập dữ liệu!', 'warning');
+                return;
+            }
+
+            if (!prefixInput) {
+                showMessage('tool4Message', '⚠️ Vui lòng nhập prefix cần xóa!', 'warning');
+                return;
+            }
+
+            const prefixes = prefixInput.split('\n').map(p => p.trim()).filter(p => p);
+            const lines = input.split('\n');
+            const filteredLines = [];
+            let deletedCount = 0;
+
+            lines.forEach((line) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return;
+
+                let shouldDelete = false;
+                for (const prefix of prefixes) {
+                    if (trimmedLine.startsWith(prefix)) {
+                        shouldDelete = true;
+                        deletedCount++;
+                        break;
+                    }
+                }
+
+                if (!shouldDelete) {
+                    filteredLines.push(trimmedLine);
+                }
+            });
+
+            const totalLines = lines.filter(l => l.trim()).length;
+            document.getElementById('tool4Total').textContent = totalLines;
+            document.getElementById('tool4Deleted').textContent = deletedCount;
+            document.getElementById('tool4Remaining').textContent = filteredLines.length;
+            document.getElementById('tool4Stats').style.display = 'grid';
+            document.getElementById('tool4Output').value = filteredLines.join('\n');
+
+            showMessage('tool4Message', `✅ Xóa thành công! Xóa ${deletedCount} dòng, còn lại ${filteredLines.length} dòng`, 'success');
+        }
+
+        function tool4_copy() {
+            const output = document.getElementById('tool4Output');
+            if (!output.value) {
+                showMessage('tool4Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+            output.select();
+            document.execCommand('copy');
+            showMessage('tool4Message', '✅ Đã copy vào clipboard!', 'success');
+        }
+
+        function tool4_clear() {
+            document.getElementById('tool4Input').value = '';
+            document.getElementById('tool4Input').focus();
+        }
+
+        function tool4_clearPrefix() {
+            document.getElementById('tool4Prefix').value = '';
+            document.getElementById('tool4Prefix').focus();
+        }
+
+        function tool4_clearOutput() {
+            document.getElementById('tool4Output').value = '';
+            document.getElementById('tool4Stats').style.display = 'none';
+            document.getElementById('tool4Total').textContent = '0';
+            document.getElementById('tool4Deleted').textContent = '0';
+            document.getElementById('tool4Remaining').textContent = '0';
+        }
+    </script>
+</body>
+
+</html>

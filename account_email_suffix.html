@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,7 +15,11 @@
       --ok: #22c55e;
       --err: #ef4444;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -24,24 +29,46 @@
       color: var(--text);
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     }
+
     .card {
       width: min(920px, calc(100vw - 28px));
       background: white;
       border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
       padding: 20px 20px 16px;
       margin: 18px 14px;
     }
+
     h1 {
       margin: 0 0 10px;
       font-size: 22px;
       color: #333;
     }
-    .desc { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .full { grid-column: 1 / -1; }
-    label { font-weight: 600; margin-bottom: 6px; display: inline-block; }
-    textarea, input[type=text] {
+
+    .desc {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: inline-block;
+    }
+
+    textarea,
+    input[type=text] {
       width: 100%;
       border: 2px solid #e5e7eb;
       border-radius: 8px;
@@ -52,11 +79,35 @@
       transition: border-color .2s ease;
       background: #fafafa;
     }
-    textarea:focus, input[type=text]:focus { border-color: var(--primary); background: #fff; }
-    textarea { min-height: 220px; resize: vertical; }
-    .row { display: flex; align-items: center; gap: 10px; }
-    .grow { flex: 1; }
-    .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+    textarea:focus,
+    input[type=text]:focus {
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 220px;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .grow {
+      flex: 1;
+    }
+
+    .btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
     button {
       border: none;
       border-radius: 8px;
@@ -65,17 +116,65 @@
       cursor: pointer;
       transition: transform .08s ease, background .2s ease, box-shadow .2s ease;
     }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35); }
-    .btn { background: #eef2ff; color: #333; }
-    .btn:hover { background: #e0e7ff; }
-    .note { font-size: 12px; color: var(--muted); }
-    .stat { margin-top: 8px; font-size: 12px; color: var(--muted); }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
-    .badge-ok { background: #dcfce7; color: #166534; }
-    .badge-err { background: #fee2e2; color: #991b1b; }
-    .right { text-align: right; }
-    .cbx { display: inline-flex; align-items: center; gap: 6px; user-select: none; }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
+    }
+
+    .btn {
+      background: #eef2ff;
+      color: #333;
+    }
+
+    .btn:hover {
+      background: #e0e7ff;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .stat {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .badge-ok {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge-err {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .cbx {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
   </style>
   <script>
     function parseLines(raw) {
@@ -116,7 +215,7 @@
         });
       }
 
-      const outLines = arr.map(({user, pass}) => JSON.stringify({ u: user, p: pass }));
+      const outLines = arr.map(({ user, pass }) => JSON.stringify({ u: user, p: pass }));
       const out = outLines.join('\n');
       const outEl = document.getElementById('output');
       outEl.value = out;
@@ -149,7 +248,7 @@
         });
       }
 
-      const outLines = arr.map(({user, pass}) => `${user}|${pass}|${user}@${domain}`);
+      const outLines = arr.map(({ user, pass }) => `${user}|${pass}|${user}@${domain}`);
       const out = outLines.join('\n');
       const outEl = document.getElementById('output');
       outEl.value = out;
@@ -177,7 +276,7 @@
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
-      try { document.execCommand('copy'); toast('Đã copy kết quả vào clipboard'); } catch (err) {}
+      try { document.execCommand('copy'); toast('Đã copy kết quả vào clipboard'); } catch (err) { }
       document.body.removeChild(textArea);
     }
 
@@ -238,6 +337,105 @@
       `;
     }
 
+    // Tạo password ngẫu nhiên gồm: chữ thường, chữ hoa, số, dấu chấm
+    function generateRandomPassword(length = 12) {
+      const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+      const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numbers = '0123456789';
+      const special = '.';
+      const allChars = lowercase + uppercase + numbers + special;
+
+      // Đảm bảo có ít nhất 1 ký tự mỗi loại
+      let password = '';
+      password += lowercase[Math.floor(Math.random() * lowercase.length)];
+      password += uppercase[Math.floor(Math.random() * uppercase.length)];
+      password += numbers[Math.floor(Math.random() * numbers.length)];
+      password += special[Math.floor(Math.random() * special.length)];
+
+      // Điền thêm các ký tự còn lại
+      for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+      }
+
+      // Shuffle password để không có pattern cố định
+      return password.split('').sort(() => Math.random() - 0.5).join('');
+    }
+
+    // Tạo chuỗi user[số]|randompass
+    function generateSeqWithRandomPass() {
+      const baseUser = (document.getElementById('seqUser')?.value || '').trim();
+      const startStr = (document.getElementById('seqStart')?.value || '').trim();
+      const endStr = (document.getElementById('seqEnd')?.value || '').trim();
+      const passLengthStr = (document.getElementById('passLength')?.value || '12').trim();
+      const passLength = parseInt(passLengthStr, 10) || 12;
+
+      if (!baseUser) { alert('Vui lòng nhập user gốc'); return; }
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (Number.isNaN(start) || Number.isNaN(end)) {
+        alert('Vui lòng nhập số bắt đầu/kết thúc hợp lệ');
+        return;
+      }
+
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      const total = to - from + 1;
+      const MAX = 200000;
+      if (total > MAX) {
+        alert(`Khoảng số quá lớn (${total}). Vui lòng nhập <= ${MAX}.`);
+        return;
+      }
+
+      const startHasPad = /^0\d+$/.test(startStr);
+      const endHasPad = /^0\d+$/.test(endStr);
+      const width = Math.max(startHasPad ? startStr.length : 0, endHasPad ? endStr.length : 0);
+
+      const outLines = [];
+      for (let i = from; i <= to; i++) {
+        const numStr = width > 0 ? String(i).padStart(width, '0') : String(i);
+        const randomPass = generateRandomPassword(passLength);
+        outLines.push(`${baseUser}${numStr}|${randomPass}`);
+      }
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        <span class="badge badge-ok">Phạm vi: ${from} → ${to}</span>
+        <span class="badge badge-ok">Pass random: ${passLength} ký tự</span>
+      `;
+    }
+
+    // Tạo user|newpass từ danh sách input (thay pass cũ bằng pass random)
+    function generateWithRandomPass() {
+      const input = document.getElementById('input').value;
+      const dedupe = document.getElementById('dedupe').checked;
+      const passLengthStr = (document.getElementById('passLength')?.value || '12').trim();
+      const passLength = parseInt(passLengthStr, 10) || 12;
+
+      const { items, invalid } = parseLines(input);
+      let arr = items;
+      if (dedupe) {
+        const seen = new Set();
+        arr = items.filter(it => {
+          if (seen.has(it.user)) return false; // Bỏ trùng theo user (không theo pass vì pass sẽ random)
+          seen.add(it.user);
+          return true;
+        });
+      }
+
+      const outLines = arr.map(({ user, pass }) => `${user}|${pass}|${generateRandomPassword(passLength)}`);
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Đầu vào: ${items.length}</span>
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        <span class="badge badge-ok">Pass random: ${passLength} ký tự</span>
+        ${invalid.length ? `<span class=\"badge badge-err\">Bỏ qua: ${invalid.length}</span>` : ''}
+      `;
+    }
+
     function clearAll() {
       document.getElementById('input').value = '';
       document.getElementById('output').value = '';
@@ -273,11 +471,13 @@
       });
     });
   </script>
-  </head>
+</head>
+
 <body>
   <div class="card">
     <h1>Tạo danh sách user|pass|user@đuôi</h1>
-    <div class="desc">Nhập list tài khoản theo dạng <b>user:pass</b> hoặc <b>user|pass</b> và đuôi email (domain), công cụ sẽ trả về <b>user|pass|user@domain</b>.</div>
+    <div class="desc">Nhập list tài khoản theo dạng <b>user:pass</b> hoặc <b>user|pass</b> và đuôi email (domain), công
+      cụ sẽ trả về <b>user|pass|user@domain</b>.</div>
 
     <div class="grid">
       <div class="full">
@@ -315,14 +515,22 @@
             <input id="seqEnd" type="text" inputmode="numeric" placeholder="vd: 100" />
           </div>
         </div>
-        <div class="btns">
+        <div style="margin-top: 8px;">
+          <label for="passLength">Độ dài pass random</label>
+          <input id="passLength" type="text" inputmode="numeric" placeholder="12" value="12" style="width: 80px;" />
+        </div>
+        <div class="btns" style="margin-top: 8px;">
           <button class="btn-primary" onclick="generateSeq()">Tạo chuỗi user số|pass</button>
-          <span class="note">Ví dụ: user1|pass (hoặc user001|pass nếu nhập 001)</span>
+          <button class="btn-primary" onclick="generateSeqWithRandomPass()" style="background: #22c55e;">Tạo user
+            số|newpass (random)</button>
+          <span class="note">Pass random gồm: a-z, A-Z, 0-9, dấu chấm</span>
         </div>
       </div>
 
       <div class="btns full">
         <button class="btn-primary" onclick="generate()">Tạo danh sách</button>
+        <button class="btn-primary" onclick="generateWithRandomPass()" style="background: #22c55e;">Tạo user|newpass
+          (random)</button>
         <button class="btn" onclick="toJsonUP()">Chuyển sang JSON {u,p}</button>
         <button class="btn" onclick="copyOut()">Copy kết quả</button>
         <button class="btn" onclick="downloadOut()">Tải .txt</button>
@@ -337,4 +545,5 @@
     </div>
   </div>
 </body>
+
 </html>
