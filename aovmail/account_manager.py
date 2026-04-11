@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, simpledialog
+from tkinter import messagebox, scrolledtext, simpledialog, filedialog
 import pyperclip
 import pyautogui
 import time
@@ -10,6 +10,12 @@ import re
 import threading
 from urllib.parse import quote
 import subprocess
+
+# Selenium imports
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.common.exceptions import WebDriverException
 
 class AccountManager:
     def __init__(self, root):
@@ -50,15 +56,26 @@ class AccountManager:
             "Dán Mail": self.paste_mail_no_switch,
             "Dán Nội Dung": self.paste_custom_no_switch,
             "Tab": self.tab_no_switch,
+            "Shift+Tab": self.shift_tab_no_switch,
             "Enter": self.enter_no_switch,
             "Lấy Code": self.fetch_code_no_switch,
             "Vào URL": self.goto_url_no_switch,
             "Đợi 0.1s": lambda: time.sleep(0.1),
             "Đợi 0.5s": lambda: time.sleep(0.5),
             "Đợi 1s": lambda: time.sleep(1),
+            "Đợi 2s": lambda: time.sleep(2),
+            "Đợi 3s": lambda: time.sleep(3),
             "Click": lambda: pyautogui.click(),
+            "Click Hình": None,  # Special handling - requires image path
             "Đóng & Mở Mới": self.close_and_new_no_switch,
+            "Kiểm Tra Thành Công": self.check_success_action,
         }
+        
+        # Selenium driver (for checking page)
+        self.selenium_driver = None
+        
+        # Combo stop flag
+        self.combo_stop_requested = False
 
         # Initialize UI Components
         self.setup_ui()
@@ -130,12 +147,17 @@ class AccountManager:
 
         self.btn_tab = tk.Button(list_frame, text="Tab", font=("Segoe UI", 10, "bold"),
                                  bg="#fab387", fg=self.bg_color, activebackground="#fbc4a4",
-                                 padx=20, pady=8, command=self.tab_action, borderwidth=0)
+                                 padx=15, pady=8, command=self.tab_action, borderwidth=0)
         self.btn_tab.pack(side=tk.LEFT, padx=5)
+
+        self.btn_shift_tab = tk.Button(list_frame, text="Shift+Tab", font=("Segoe UI", 10, "bold"),
+                                       bg="#f9e2af", fg=self.bg_color, activebackground="#faecc5",
+                                       padx=10, pady=8, command=self.shift_tab_action, borderwidth=0)
+        self.btn_shift_tab.pack(side=tk.LEFT, padx=5)
 
         self.btn_enter = tk.Button(list_frame, text="Enter", font=("Segoe UI", 10, "bold"),
                                    bg="#f2cdcd", fg=self.bg_color, activebackground="#f5e0dc",
-                                   padx=20, pady=8, command=self.enter_action, borderwidth=0)
+                                   padx=15, pady=8, command=self.enter_action, borderwidth=0)
         self.btn_enter.pack(side=tk.LEFT, padx=5)
 
         self.btn_fetch_code = tk.Button(list_frame, text="Lấy Code", font=("Segoe UI", 10, "bold"),
@@ -200,6 +222,12 @@ class AccountManager:
                                        bg="#b4befe", fg=self.bg_color, activebackground="#c8d0ff",
                                        padx=15, pady=8, command=self.create_combo_dialog, borderwidth=0)
         self.btn_add_combo.pack(side=tk.LEFT, padx=5)
+        
+        # Stop combo button (initially hidden)
+        self.btn_stop_combo = tk.Button(self.combo_frame, text="⏹ Dừng", font=("Segoe UI", 10, "bold"),
+                                        bg="#f38ba8", fg=self.bg_color, activebackground="#f5a0b8",
+                                        padx=15, pady=8, command=self.stop_combo, borderwidth=0)
+        # Don't pack yet - will show when combo is running
         
         # Render existing combos
         self.render_combo_buttons()
@@ -326,6 +354,15 @@ class AccountManager:
         pyautogui.hotkey('alt', 'tab')
         self.status_var.set("Đã Tab sang ô tiếp theo!")
 
+    def shift_tab_action(self):
+        """Alt+Tab to switch window, then press Shift+Tab key"""
+        pyautogui.hotkey('alt', 'tab')
+        time.sleep(0.025)
+        pyautogui.hotkey('shift', 'tab')
+        time.sleep(0.015)
+        pyautogui.hotkey('alt', 'tab')
+        self.status_var.set("Đã Shift+Tab lùi về ô trước!")
+
     def enter_action(self):
         """Alt+Tab to switch window, then press Enter key"""
         pyautogui.hotkey('alt', 'tab')
@@ -352,11 +389,8 @@ class AccountManager:
         self.status_var.set("Đã đóng & mở Garena!")
 
     def open_chrome_with_proxy(self):
-        """Open Chrome browser with HTTP proxy"""
+        """Open Chrome browser with optional proxy"""
         proxy = self.proxy_var.get().strip()
-        if not proxy or proxy == "ip:port":
-            messagebox.showwarning("Cảnh báo", "Vui lòng nhập proxy (ví dụ: 192.168.1.1:8080)")
-            return
         
         # Common Chrome paths on Windows
         chrome_paths = [
@@ -376,19 +410,24 @@ class AccountManager:
             return
         
         try:
-            # Clean proxy format - remove any protocol prefix
-            clean_proxy = proxy.replace("http://", "").replace("https://", "").replace("socks5://", "")
-            
-            # Launch Chrome with SOCKS5 proxy and incognito mode
+            # Base command with debugging port
             cmd = [
                 chrome_path,
-                f"--proxy-server=socks5://{clean_proxy}",
                 "--incognito",
                 "--ignore-certificate-errors",
+                "--remote-debugging-port=9222",
                 "https://account.garena.com/"
             ]
+            
+            # Add proxy if provided
+            if proxy and proxy != "ip:port":
+                clean_proxy = proxy.replace("http://", "").replace("https://", "").replace("socks5://", "")
+                cmd.insert(1, f"--proxy-server=socks5://{clean_proxy}")
+                self.status_var.set(f"Đã mở Chrome với proxy: {clean_proxy}")
+            else:
+                self.status_var.set("Đã mở Chrome (không proxy)")
+            
             subprocess.Popen(cmd)
-            self.status_var.set(f"Đã mở Chrome với proxy: {clean_proxy}")
         except Exception as e:
             messagebox.showerror("Lỗi", f"Không thể mở Chrome: {str(e)}")
 
@@ -426,19 +465,19 @@ class AccountManager:
 
     def fetch_mail_code(self):
         """Fetch verification code from mail API and paste it"""
-        _, _, mail_user = self.get_first_line_parts()
-        if not mail_user:
-            self.status_var.set("Không có mail để lấy code!")
+        user, _, _ = self.get_first_line_parts()
+        if not user:
+            self.status_var.set("Không có user để lấy code!")
             return
         
-        # Extract username from email (remove @domain if present)
-        if '@' in mail_user:
-            username = mail_user.split('@')[0]
+        # Extract username from user field (remove @domain if present)
+        if '@' in user:
+            username = user.split('@')[0]
         else:
-            username = mail_user
+            username = user
         
         email = f"{username}@batdongsanvgp.com"
-        print(f"[DEBUG] mail_user = '{mail_user}', username = '{username}'")  # Debug
+        print(f"[DEBUG] user = '{user}', username = '{username}'")  # Debug
         self.status_var.set(f"Đang lấy code từ {email}...")
         self.root.update()
         
@@ -454,7 +493,10 @@ class AccountManager:
                     response = requests.get(api_url, timeout=10)
                     
                     if response.status_code != 200:
-                        self.root.after(0, lambda: self.status_var.set(f"Lỗi HTTP {response.status_code} - Chạy node server.js chưa?"))
+                        if response.status_code == 404:
+                            self.root.after(0, lambda: self.status_var.set(f"⚠ Email chưa nhận mail nào (404)"))
+                        else:
+                            self.root.after(0, lambda: self.status_var.set(f"Lỗi HTTP {response.status_code} - Chạy node server.js chưa?"))
                         return
                     
                     result = response.json()
@@ -471,7 +513,7 @@ class AccountManager:
                         body = data[0]['body']
                         
                         # Try pattern 1: <b>12345678</b>
-                        match = re.search(r'<b[^>]>(\d{8})</b>', body)
+                        match = re.search(r'<b[^>]*>(\d{8})</b>', body)
                         if match:
                             code = match.group(1)
                         
@@ -657,8 +699,25 @@ class AccountManager:
             selection = avail_listbox.curselection()
             if selection:
                 action = avail_listbox.get(selection[0])
-                selected_actions.append(action)
-                update_selected_list()
+                # Special handling for "Vào URL" - prompt for specific URL
+                if action == "Vào URL":
+                    url = simpledialog.askstring("Nhập URL", "URL cần vào:", initialvalue="https://", parent=dialog)
+                    if url and url.strip() and url.strip() != "https://":
+                        selected_actions.append({"action": "Vào URL", "url": url.strip()})
+                        update_selected_list()
+                # Special handling for "Click Hình" - prompt for image file
+                elif action == "Click Hình":
+                    img_path = filedialog.askopenfilename(
+                        title="Chọn hình ảnh để click",
+                        filetypes=[("Images", "*.png *.jpg *.jpeg *.bmp"), ("All files", "*.*")],
+                        parent=dialog
+                    )
+                    if img_path:
+                        selected_actions.append({"action": "Click Hình", "image": img_path})
+                        update_selected_list()
+                else:
+                    selected_actions.append(action)
+                    update_selected_list()
         
         def remove_action():
             selection = selected_listbox.curselection()
@@ -685,7 +744,18 @@ class AccountManager:
         def update_selected_list():
             selected_listbox.delete(0, tk.END)
             for i, act in enumerate(selected_actions):
-                selected_listbox.insert(tk.END, f"{i+1}. {act}")
+                if isinstance(act, dict) and "action" in act:
+                    # Action with parameters (e.g., URL or Image)
+                    if act["action"] == "Vào URL":
+                        display = f"{i+1}. Vào URL: {act['url'][:30]}..." if len(act.get('url', '')) > 30 else f"{i+1}. Vào URL: {act.get('url', '')}"
+                    elif act["action"] == "Click Hình":
+                        img_name = os.path.basename(act.get('image', 'N/A'))
+                        display = f"{i+1}. Click Hình: {img_name}"
+                    else:
+                        display = f"{i+1}. {act['action']}"
+                    selected_listbox.insert(tk.END, display)
+                else:
+                    selected_listbox.insert(tk.END, f"{i+1}. {act}")
         
         tk.Button(btn_frame, text="→", font=("Segoe UI", 12, "bold"), bg=self.green_color,
                  fg=self.bg_color, command=add_action, width=3).pack(pady=5)
@@ -728,30 +798,73 @@ class AccountManager:
                  padx=20, pady=10, command=save_combo, borderwidth=0).pack(pady=15)
     
     def run_combo(self, combo_name):
-        """Execute a combo sequence"""
+        """Execute a combo sequence in a background thread"""
         if combo_name not in self.combos:
             return
         
-        actions = self.combos[combo_name]
-        self.status_var.set(f"Đang chạy combo: {combo_name}...")
+        # Prevent starting multiple combos at once
+        if getattr(self, 'combo_running', False):
+            self.status_var.set("⚠ Combo đang chạy, nhấn Dừng trước!")
+            return
+        
+        self.combo_stop_requested = False
+        self.combo_running = True
+        
+        # Show stop button
+        self.btn_stop_combo.pack(side=tk.LEFT, padx=5)
+        self.status_var.set(f"Đang chạy combo: {combo_name}... (Nhấn Dừng để hủy)")
         self.root.update()
+        
+        # Run in background thread
+        threading.Thread(target=self._run_combo_thread, args=(combo_name,), daemon=True).start()
+    
+    def _run_combo_thread(self, combo_name):
+        """Background thread for combo execution"""
+        actions = self.combos[combo_name]
         
         # Switch to other window first
         pyautogui.hotkey('alt', 'tab')
         time.sleep(0.05)
         
+        stopped = False
         # Execute each action
-        for action_name in actions:
-            if action_name in self.available_actions:
-                try:
-                    self.available_actions[action_name]()
+        for i, action_item in enumerate(actions):
+            # Check if stop requested
+            if self.combo_stop_requested:
+                stopped = True
+                break
+            
+            try:
+                if isinstance(action_item, dict) and "action" in action_item:
+                    # Action with parameters
+                    if action_item["action"] == "Vào URL" and "url" in action_item:
+                        self.goto_url_with_param(action_item["url"])
+                    elif action_item["action"] == "Click Hình" and "image" in action_item:
+                        self.click_image_action(action_item["image"])
+                    time.sleep(0.025)
+                elif action_item in self.available_actions:
+                    self.available_actions[action_item]()
                     time.sleep(0.025)  # Small delay between actions
-                except Exception as e:
-                    print(f"Error in action {action_name}: {e}")
+            except Exception as e:
+                print(f"Error in action {action_item}: {e}")
         
         # Switch back 
         pyautogui.hotkey('alt', 'tab')
-        self.status_var.set(f"Hoàn thành combo: {combo_name}")
+        
+        # Update UI from main thread
+        def _finish():
+            self.btn_stop_combo.pack_forget()
+            self.combo_running = False
+            if stopped:
+                self.status_var.set(f"⏹ Đã dừng combo: {combo_name}")
+            else:
+                self.status_var.set(f"✓ Hoàn thành combo: {combo_name}")
+        self.root.after(0, _finish)
+    
+    def stop_combo(self):
+        """Request to stop the currently running combo"""
+        self.combo_stop_requested = True
+        self.status_var.set("Đang dừng combo...")
     
     def show_combo_menu(self, event, combo_name):
         """Show context menu for combo (Edit/Delete)"""
@@ -823,8 +936,25 @@ class AccountManager:
             selection = avail_listbox.curselection()
             if selection:
                 action = avail_listbox.get(selection[0])
-                selected_actions.append(action)
-                update_selected_list()
+                # Special handling for "Vào URL" - prompt for specific URL
+                if action == "Vào URL":
+                    url = simpledialog.askstring("Nhập URL", "URL cần vào:", initialvalue="https://", parent=dialog)
+                    if url and url.strip() and url.strip() != "https://":
+                        selected_actions.append({"action": "Vào URL", "url": url.strip()})
+                        update_selected_list()
+                # Special handling for "Click Hình" - prompt for image file
+                elif action == "Click Hình":
+                    img_path = filedialog.askopenfilename(
+                        title="Chọn hình ảnh để click",
+                        filetypes=[("Images", "*.png *.jpg *.jpeg *.bmp"), ("All files", "*.*")],
+                        parent=dialog
+                    )
+                    if img_path:
+                        selected_actions.append({"action": "Click Hình", "image": img_path})
+                        update_selected_list()
+                else:
+                    selected_actions.append(action)
+                    update_selected_list()
         
         def remove_action():
             selection = selected_listbox.curselection()
@@ -851,7 +981,18 @@ class AccountManager:
         def update_selected_list():
             selected_listbox.delete(0, tk.END)
             for i, act in enumerate(selected_actions):
-                selected_listbox.insert(tk.END, f"{i+1}. {act}")
+                if isinstance(act, dict) and "action" in act:
+                    # Action with parameters (e.g., URL or Image)
+                    if act["action"] == "Vào URL":
+                        display = f"{i+1}. Vào URL: {act['url'][:30]}..." if len(act.get('url', '')) > 30 else f"{i+1}. Vào URL: {act.get('url', '')}"
+                    elif act["action"] == "Click Hình":
+                        img_name = os.path.basename(act.get('image', 'N/A'))
+                        display = f"{i+1}. Click Hình: {img_name}"
+                    else:
+                        display = f"{i+1}. {act['action']}"
+                    selected_listbox.insert(tk.END, display)
+                else:
+                    selected_listbox.insert(tk.END, f"{i+1}. {act}")
         
         tk.Button(btn_frame, text="→", font=("Segoe UI", 12, "bold"), bg=self.green_color,
                  fg=self.bg_color, command=add_action, width=3).pack(pady=5)
@@ -943,22 +1084,26 @@ class AccountManager:
         """Press Tab without switching window"""
         pyautogui.press('tab')
     
+    def shift_tab_no_switch(self):
+        """Press Shift+Tab without switching window"""
+        pyautogui.hotkey('shift', 'tab')
+    
     def enter_no_switch(self):
         """Press Enter without switching window"""
         pyautogui.press('enter')
     
     def fetch_code_no_switch(self):
         """Fetch code and paste without switching (for combo - synchronous)"""
-        _, _, mail_user = self.get_first_line_parts()
-        if not mail_user:
+        user, _, _ = self.get_first_line_parts()
+        if not user:
             return
         
         try:
-            # Extract username from email
-            if '@' in mail_user:
-                username = mail_user.split('@')[0]
+            # Extract username from user field
+            if '@' in user:
+                username = user.split('@')[0]
             else:
-                username = mail_user
+                username = user
             
             attempt = 0
             while attempt < self.max_retry_attempts:
@@ -979,7 +1124,7 @@ class AccountManager:
                 if isinstance(data, list) and len(data) > 0 and 'body' in data[0]:
                     body = data[0]['body']
                     
-                    match = re.search(r'<b[^>]>(\d{8})</b>', body)
+                    match = re.search(r'<b[^>]*>(\d{8})</b>', body)
                     if match:
                         code = match.group(1)
                     
@@ -1058,7 +1203,109 @@ class AccountManager:
         time.sleep(0.03)
         pyautogui.hotkey('ctrl', 'v')
         time.sleep(0.03)
+    
+    def goto_url_with_param(self, url):
+        """F6 -> Paste specific URL -> Enter (for combo with custom URL)"""
+        if not url:
+            return
+        
+        pyperclip.copy(url)
+        pyautogui.press('f6')
+        time.sleep(0.03)
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(0.03)
         pyautogui.press('enter')
+    
+    def click_image_action(self, image_path, max_retries=10, retry_delay=0.5, confidence=0.8):
+        """Find and click on an image on screen"""
+        if not image_path or not os.path.exists(image_path):
+            print(f"[Click Hình] File không tồn tại: {image_path}")
+            return False
+        
+        for attempt in range(max_retries):
+            # Check stop flag so we don't keep retrying after stop is pressed
+            if self.combo_stop_requested:
+                print(f"[Click Hình] Dừng theo yêu cầu")
+                return False
+            
+            try:
+                location = pyautogui.locateOnScreen(image_path, confidence=confidence)
+                if location:
+                    center = pyautogui.center(location)
+                    pyautogui.click(center)
+                    print(f"[Click Hình] Đã click vào: {os.path.basename(image_path)}")
+                    return True
+                else:
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+            except Exception as e:
+                print(f"[Click Hình] Lỗi: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+        
+        print(f"[Click Hình] Không tìm thấy hình sau {max_retries} lần: {os.path.basename(image_path)}")
+        return False
+    
+    # ============ SELENIUM DETECTION METHODS ============
+    
+    def connect_to_chrome(self):
+        """Connect to Chrome browser via debugging port"""
+        try:
+            if self.selenium_driver:
+                try:
+                    # Check if driver is still valid
+                    self.selenium_driver.title
+                    return self.selenium_driver
+                except:
+                    self.selenium_driver = None
+            
+            options = ChromeOptions()
+            options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
+            
+            self.selenium_driver = webdriver.Chrome(options=options)
+            return self.selenium_driver
+        except WebDriverException as e:
+            print(f"[Selenium] Không thể kết nối Chrome: {e}")
+            return None
+        except Exception as e:
+            print(f"[Selenium] Lỗi: {e}")
+            return None
+    
+    def check_success(self):
+        """Check if page shows success message"""
+        driver = self.connect_to_chrome()
+        if not driver:
+            return False
+        
+        try:
+            # Find H2 elements and check for success text
+            h2_elements = driver.find_elements(By.TAG_NAME, "h2")
+            for h2 in h2_elements:
+                text = h2.text.strip()
+                if "Cám ơn vì đã tạo tài khoản Garena" in text:
+                    return True
+            return False
+        except Exception as e:
+            print(f"[Selenium] Lỗi kiểm tra: {e}")
+            return False
+    
+    def check_success_action(self):
+        """Action for combo: Check if account creation was successful"""
+        success = self.check_success()
+        if success:
+            self.root.after(0, lambda: self.status_var.set("✓ TẠO THÀNH CÔNG!"))
+            # Optional: Delete first line after success
+            self.root.after(100, self.delete_first_line_silent)
+        else:
+            self.root.after(0, lambda: self.status_var.set("✗ Chưa thành công hoặc đang chờ..."))
+    
+    def delete_first_line_silent(self):
+        """Delete first line without confirmation (for auto mode)"""
+        first_line = self.text_area.get("1.0", "1.end").strip()
+        if first_line:
+            self.text_area.delete("1.0", "2.0")
+            self.update_count()
+            print(f"[Auto] Đã xóa: {first_line[:50]}...")
 
 
 if __name__ == "__main__":

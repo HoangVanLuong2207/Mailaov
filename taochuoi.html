@@ -278,6 +278,7 @@
             <button class="nav-tab" onclick="switchTab('tool2')">🔍 So Sánh Danh Sách</button>
             <button class="nav-tab" onclick="switchTab('tool3')">📝 Lọc user|newpass</button>
             <button class="nav-tab" onclick="switchTab('tool4')">🗑️ Xóa Theo Prefix</button>
+            <button class="nav-tab" onclick="switchTab('tool5')">🔄 JSON ➔ TXT</button>
         </div>
 
         <!-- TAB 1: Lọc user|pass từ user|pass|newpass -->
@@ -479,41 +480,58 @@
                 </div>
             </div>
         </div>
-        <div class="section">
-            <h2>📥 Dữ liệu đầu vào (user|pass|newpass)</h2>
-            <textarea id="tool3Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
-            <div class="button-group">
-                <button class="btn-primary" onclick="tool3_process()">🔄 Lọc dữ liệu</button>
-                <button class="btn-clear" onclick="tool3_clear()">🗑️ Xóa input</button>
-            </div>
-        </div>
 
-        <div id="tool3Message"></div>
+        <!-- TAB 5: JSON -> TXT -->
+        <div class="tab-content" id="tool5">
+            <div class="input-section">
+                <div class="section">
+                    <h2>📥 Dữ liệu JSON đầu vào</h2>
+                    <textarea id="tool5Input" placeholder='Dán mã JSON ở đây... VD: [{"user": "admin", "pass": "123"}]'></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool5_clear()">🗑️ Xóa</button>
+                    </div>
+                </div>
 
-        <div class="section">
-            <h2>📊 Thống kê</h2>
-            <div class="stats" id="tool3Stats" style="display: none;">
-                <div class="stat-item">
-                    <div class="stat-value" id="tool3Total">0</div>
-                    <div class="stat-label">Tổng dòng</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="tool3Valid">0</div>
-                    <div class="stat-label">Dòng hợp lệ</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="tool3Error">0</div>
-                    <div class="stat-label">Dòng lỗi</div>
+                <div class="section">
+                    <h2>⚙️ Định dạng đầu ra (ví dụ: {user}|{pass})</h2>
+                    <textarea id="tool5Format" placeholder="Tùy chọn: Nhập định dạng bạn muốn (vd: {username}|{password}). Nếu để trống, tool sẽ tự xuất các value cách nhau bởi dấu |" style="min-height: 100px;"></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="document.getElementById('tool5Format').value=''">🗑️ Xóa</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="section">
-            <h2>📤 Kết quả (user|newpass)</h2>
-            <textarea id="tool3Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
-            <div class="button-group">
-                <button class="btn-copy" onclick="tool3_copy()">📋 Copy kết quả</button>
-                <button class="btn-clear" onclick="tool3_clearOutput()">🗑️ Xóa output</button>
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="tool5_process()">🔄 Chuyển Đổi Sang TXT</button>
+            </div>
+
+            <div id="tool5Message"></div>
+
+            <div class="section">
+                <h2>📊 Thống kê</h2>
+                <div class="stats" id="tool5Stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool5Total">0</div>
+                        <div class="stat-label">Tổng mục JSON</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool5Success">0</div>
+                        <div class="stat-label">Dòng thành công</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool5Error">0</div>
+                        <div class="stat-label">Mục lỗi</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>📤 Kết quả TXT</h2>
+                <textarea id="tool5Output" placeholder="Kết quả sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool5_copy()">📋 Copy kết quả</button>
+                    <button class="btn-clear" onclick="tool5_clearOutput()">🗑️ Xóa output</button>
+                </div>
             </div>
         </div>
     </div>
@@ -819,6 +837,104 @@
             document.getElementById('tool4Total').textContent = '0';
             document.getElementById('tool4Deleted').textContent = '0';
             document.getElementById('tool4Remaining').textContent = '0';
+        }
+
+        // ==================== TOOL 5: JSON -> TXT ====================
+        function tool5_process() {
+            const inputStr = document.getElementById('tool5Input').value.trim();
+            const formatStr = document.getElementById('tool5Format').value;
+
+            if (!inputStr) {
+                showMessage('tool5Message', '⚠️ Vui lòng nhập dữ liệu JSON!', 'warning');
+                return;
+            }
+
+            let data;
+            try {
+                data = JSON.parse(inputStr);
+            } catch (e) {
+                try {
+                    // Cố gắng cover trường hợp JSON-lines (mỗi dòng 1 object)
+                    let fixedStr = '[' + inputStr.replace(/}\s*{/g, '},{') + ']';
+                    data = JSON.parse(fixedStr);
+                } catch (e2) {
+                    showMessage('tool5Message', '⚠️ JSON không hợp lệ: ' + e.message, 'error');
+                    return;
+                }
+            }
+
+            if (typeof data !== 'object' || data === null) {
+                showMessage('tool5Message', '⚠️ JSON phải là Object hoặc Array Object!', 'error');
+                return;
+            }
+
+            if (!Array.isArray(data)) {
+                data = [data]; // Bọc thành mảng nếu là một Object lẻ
+            }
+
+            const validLines = [];
+            let errorCount = 0;
+
+            data.forEach((item) => {
+                if (typeof item !== 'object' || item === null) {
+                    errorCount++;
+                    return;
+                }
+
+                if (formatStr) {
+                    let line = formatStr;
+                    for (const key in item) {
+                        let val = item[key];
+                        if (typeof val === 'object') {
+                            val = JSON.stringify(val);
+                        }
+                        const regex = new RegExp(`\\{${key}\\}`, 'g');
+                        if (val !== undefined && val !== null) {
+                            line = line.replace(regex, val);
+                        }
+                    }
+                    validLines.push(line);
+                } else {
+                    const values = Object.values(item).map(v => typeof v === 'object' ? JSON.stringify(v) : v);
+                    validLines.push(values.join('|'));
+                }
+            });
+
+            document.getElementById('tool5Total').textContent = data.length;
+            document.getElementById('tool5Success').textContent = validLines.length;
+            document.getElementById('tool5Error').textContent = errorCount;
+            document.getElementById('tool5Stats').style.display = 'grid';
+            document.getElementById('tool5Output').value = validLines.join('\n');
+
+            if (errorCount > 0) {
+                showMessage('tool5Message', `⚠️ Gặp lỗi ở ${errorCount} mục, hoàn thành ${validLines.length} dòng`, 'warning');
+            } else {
+                showMessage('tool5Message', `✅ Chuyển đổi thành công! Trích xuất ${validLines.length} mục`, 'success');
+            }
+        }
+
+        function tool5_copy() {
+            const output = document.getElementById('tool5Output');
+            if (!output.value) {
+                showMessage('tool5Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+            output.select();
+            document.execCommand('copy');
+            showMessage('tool5Message', '✅ Đã copy vào clipboard!', 'success');
+        }
+
+        function tool5_clear() {
+            document.getElementById('tool5Input').value = '';
+            document.getElementById('tool5Input').focus();
+        }
+
+        function tool5_clearOutput() {
+            document.getElementById('tool5Output').value = '';
+            document.getElementById('tool5Stats').style.display = 'none';
+            document.getElementById('tool5Total').textContent = '0';
+            document.getElementById('tool5Success').textContent = '0';
+            document.getElementById('tool5Error').textContent = '0';
         }
     </script>
 </body>

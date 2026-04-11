@@ -8,6 +8,66 @@
     "Dán Pass",
     "Enter"
   ],
+  "addmail": [
+    "Tab",
+    "Tab",
+    "Tab",
+    "Dán User",
+    "Tab",
+    "Dán Pass",
+    "Enter",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/changp.png"
+    },
+    "Đợi 0.5s",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/changmail.png"
+    },
+    "Đợi 0.5s",
+    "Tab",
+    "Tab",
+    "Tab",
+    "Dán Mail",
+    "Tab",
+    "Dán Mail",
+    "Tab",
+    "Dán Pass",
+    "Enter",
+    "Đợi 1s",
+    "Tab",
+    "Dán User",
+    "Enter",
+    "Đợi 0.5s",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/back.png"
+    },
+    "Đợi 1s",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/changp.png"
+    },
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/xacthucemail.png"
+    },
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/herhr.png"
+    },
+    "Dán Mail",
+    "Enter",
+    "Đợi 0.5s",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/clickotp.png"
+    },
+    "Đợi 2s",
+    "Lấy Code",
+    "Enter"
+  ],
   "changepass": [
     "Tab",
     "Dán Pass",
@@ -61,5 +121,81 @@
     "Tab",
     "Dán Mail",
     "Enter"
+  ],
+  "code": [
+    {
+      "action": "Vào URL",
+      "url": "https://auth.garena.com/universal/oauth?client_id=100054&redirect_uri=https%3A%2F%2Fgiftcode.lienquan.garena.vn%2Fconnect%2Fgarena%2Fcallback&response_type=code&all_platforms=1&platform=1&state=https%3A%2F%2Fgiftcode.lienquan.garena.vn%2Fgiftcode%2F"
+    },
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-02 194435.png"
+    },
+    "Dán User",
+    "Tab",
+    "Dán Mail",
+    "Enter",
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-02 194344.png"
+    },
+    "Dán Nội Dung",
+    "Enter",
+    "Đợi 1s",
+    {
+      "action": "Vào URL",
+      "url": "https://auth.garena.com/universal/oauth?response_type=code&client_id=100054&redirect_uri=https%3A%2F%2Ftaolienquan2026.lienquan.garena.vn%2Flogin%2Fcallback&locale=vi-VN&platform=1"
+    },
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-02 194742.png"
+    },
+    {
+      "action": "Vào URL",
+      "url": "https://giftcode.lienquan.garena.vn/connect/garena/logout"
+    },
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-02 194956.png"
+    }
+  ],
+  "changemxt": [
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/Screenshot 2026-03-15 144105.png"
+    },
+    "Dán User",
+    "Tab",
+    "Dán Pass",
+    "Enter",
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/Screenshot 2026-03-15 144821.png"
+    },
+    {
+      "action": "Click Hình",
+      "image": "F:/Mailaov/aovmail/button_images/Screenshot 2026-03-15 144956.png"
+    },
+    "Đợi 0.5s",
+    "Shift+Tab",
+    "Lấy Code",
+    "Lấy Code",
+    "Enter",
+    "Đợi 1s",
+    "Tab",
+    "Dán Pass",
+    "Tab",
+    "Dán Mail",
+    "Tab",
+    "Dán Mail",
+    "Enter",
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-04 205554.png"
+    },
+    {
+      "action": "Click Hình",
+      "image": "C:/users/admin'/OneDrive/Pictures/Screenshots/Screenshot 2026-03-04 203200.png"
+    }
   ]
 }

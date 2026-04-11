@@ -436,6 +436,126 @@
       `;
     }
 
+    // --- BỔ SUNG: TẠO MAIL RANDOM ---
+
+    function generateRandomString(length = 8) {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
+
+    function generateWithRandomEmail() {
+      const input = document.getElementById('input').value;
+      let domain = document.getElementById('domain').value.trim();
+      const dedupe = document.getElementById('dedupe').checked;
+      const incUser = document.getElementById('incUser')?.checked;
+      const shortMode = document.getElementById('shortMode')?.checked;
+      const mailLen = parseInt(document.getElementById('mailLen')?.value || '8', 10);
+
+      if (!domain) {
+        alert('Vui lòng nhập đuôi email (domain)');
+        return;
+      }
+      if (domain.startsWith('@')) domain = domain.slice(1);
+
+      const { items, invalid } = parseLines(input);
+      let arr = items;
+      if (dedupe) {
+        const seen = new Set();
+        arr = items.filter(it => {
+          if (seen.has(it.key)) return false;
+          seen.add(it.key);
+          return true;
+        });
+      }
+
+      const outLines = arr.map(({ user, pass }) => {
+        const randPart = generateRandomString(mailLen);
+
+        let mailUser = user;
+        if (shortMode) {
+          const match = user.match(/^(.*?)(\d+)$/);
+          if (match) {
+            const base = match[1];
+            const nums = match[2];
+            mailUser = (base.slice(-1) || '') + nums;
+          } else {
+            mailUser = user.slice(-1);
+          }
+        }
+
+        const mailPart = incUser ? `${mailUser}${randPart}` : randPart;
+        return `${user}|${pass}|${mailPart}@${domain}`;
+      });
+
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Đầu vào: ${items.length}</span>
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        <span class="badge badge-ok">Mail random (${mailLen} ký tự)</span>
+        ${invalid.length ? `<span class=\"badge badge-err\">Bỏ qua: ${invalid.length}</span>` : ''}
+      `;
+    }
+
+    function generateSeqWithRandomEmail() {
+      const baseUser = (document.getElementById('seqUser')?.value || '').trim();
+      const basePass = (document.getElementById('seqPass')?.value || '').trim();
+      const startStr = (document.getElementById('seqStart')?.value || '').trim();
+      const endStr = (document.getElementById('seqEnd')?.value || '').trim();
+      let domain = document.getElementById('domain').value.trim();
+      const incUser = document.getElementById('incUser')?.checked;
+      const shortMode = document.getElementById('shortMode')?.checked;
+      const mailLen = parseInt(document.getElementById('mailLen')?.value || '8', 10);
+
+      if (!baseUser) { alert('Vui lòng nhập user gốc'); return; }
+      if (!basePass) { alert('Vui lòng nhập mật khẩu'); return; }
+      if (!domain) { alert('Vui lòng nhập domain email'); return; }
+      if (domain.startsWith('@')) domain = domain.slice(1);
+
+      const start = parseInt(startStr, 10);
+      const end = parseInt(endStr, 10);
+      if (Number.isNaN(start) || Number.isNaN(end)) {
+        alert('Vui lòng nhập số bắt đầu/kết thúc');
+        return;
+      }
+
+      const from = Math.min(start, end);
+      const to = Math.max(start, end);
+      const startHasPad = /^0\d+$/.test(startStr);
+      const endHasPad = /^0\d+$/.test(endStr);
+      const width = Math.max(startHasPad ? startStr.length : 0, endHasPad ? endStr.length : 0);
+
+      const outLines = [];
+      for (let i = from; i <= to; i++) {
+        const numStr = width > 0 ? String(i).padStart(width, '0') : String(i);
+        const currentUser = `${baseUser}${numStr}`;
+        const randPart = generateRandomString(mailLen);
+
+        let mailUser = currentUser;
+        if (shortMode) {
+          // baseUser là phần chữ, numStr là phần số
+          mailUser = (baseUser.slice(-1) || '') + numStr;
+        }
+
+        const mailPart = incUser ? `${mailUser}${randPart}` : randPart;
+        outLines.push(`${currentUser}|${basePass}|${mailPart}@${domain}`);
+      }
+
+      const out = outLines.join('\n');
+      const outEl = document.getElementById('output');
+      outEl.value = out;
+      document.getElementById('stat').innerHTML = `
+        <span class="badge badge-ok">Kết quả: ${outLines.length}</span>
+        <span class="badge badge-ok">Phạm vi: ${from} → ${to}</span>
+        <span class="badge badge-ok">Mail random (${mailLen} ký tự)</span>
+      `;
+    }
+
     function clearAll() {
       document.getElementById('input').value = '';
       document.getElementById('output').value = '';
@@ -491,7 +611,24 @@
           <input id="domain" type="text" placeholder="vd: batdongsanvgp.com" />
           <div class="note">Không cần nhập ký tự @. Ví dụ đầu ra một dòng: user|pass|user@batdongsanvgp.com</div>
         </div>
-        <label class="cbx"><input id="dedupe" type="checkbox" checked /> Bỏ trùng theo user|pass</label>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="cbx"><input id="dedupe" type="checkbox" checked /> Bỏ trùng theo user|pass</label>
+          <label class="cbx"><input id="incUser" type="checkbox" checked /> Bao gồm User trong Email</label>
+          <label class="cbx"><input id="shortMode" type="checkbox" checked /> Chế độ rút gọn (1 Ký tự cuối + Số +
+            Random)</label>
+        </div>
+      </div>
+
+      <div class="btns full">
+        <button class="btn-primary" onclick="generate()">Tạo danh sách</button>
+        <button class="btn-primary" onclick="generateWithRandomPass()" style="background: #22c55e;">Tạo user|newpass
+          (random)</button>
+        <button class="btn-primary" onclick="generateWithRandomEmail()" style="background: #ef4444;">Tạo
+          user|pass|random@domain</button>
+        <button class="btn" onclick="toJsonUP()">Chuyển sang JSON {u,p}</button>
+        <button class="btn" onclick="copyOut()">Copy kết quả</button>
+        <button class="btn" onclick="downloadOut()">Tải .txt</button>
+        <button class="btn" onclick="clearAll()">Xóa nội dung</button>
       </div>
 
       <div class="full">
@@ -515,34 +652,40 @@
             <input id="seqEnd" type="text" inputmode="numeric" placeholder="vd: 100" />
           </div>
         </div>
-        <div style="margin-top: 8px;">
-          <label for="passLength">Độ dài pass random</label>
-          <input id="passLength" type="text" inputmode="numeric" placeholder="12" value="12" style="width: 80px;" />
+        <div style="margin-top: 8px; display: flex; gap: 20px;">
+          <div>
+            <label for="passLength">Độ dài pass random</label>
+            <input id="passLength" type="text" inputmode="numeric" placeholder="12" value="12" style="width: 80px;" />
+          </div>
+          <div>
+            <label for="mailLen">Độ dài mail random</label>
+            <input id="mailLen" type="text" inputmode="numeric" placeholder="8" value="8" style="width: 80px;" />
+          </div>
         </div>
         <div class="btns" style="margin-top: 8px;">
           <button class="btn-primary" onclick="generateSeq()">Tạo chuỗi user số|pass</button>
           <button class="btn-primary" onclick="generateSeqWithRandomPass()" style="background: #22c55e;">Tạo user
             số|newpass (random)</button>
+          <button class="btn-primary" onclick="generateSeqWithRandomEmail()" style="background: #ef4444;">Tạo
+            user[số]|pass|random@domain</button>
           <span class="note">Pass random gồm: a-z, A-Z, 0-9, dấu chấm</span>
         </div>
       </div>
 
-      <div class="btns full">
-        <button class="btn-primary" onclick="generate()">Tạo danh sách</button>
-        <button class="btn-primary" onclick="generateWithRandomPass()" style="background: #22c55e;">Tạo user|newpass
-          (random)</button>
-        <button class="btn" onclick="toJsonUP()">Chuyển sang JSON {u,p}</button>
-        <button class="btn" onclick="copyOut()">Copy kết quả</button>
-        <button class="btn" onclick="downloadOut()">Tải .txt</button>
-        <button class="btn" onclick="clearAll()">Xóa nội dung</button>
-      </div>
-
-      <div class="full">
-        <label for="output">Kết quả</label>
-        <textarea id="output" placeholder="Kết quả sẽ hiện tại đây" readonly></textarea>
-        <div id="stat" class="stat right"></div>
-      </div>
+      <button class="btn-primary" onclick="generateWithRandomPass()" style="background: #22c55e;">Tạo user|newpass
+        (random)</button>
+      <button class="btn" onclick="toJsonUP()">Chuyển sang JSON {u,p}</button>
+      <button class="btn" onclick="copyOut()">Copy kết quả</button>
+      <button class="btn" onclick="downloadOut()">Tải .txt</button>
+      <button class="btn" onclick="clearAll()">Xóa nội dung</button>
     </div>
+
+    <div class="full">
+      <label for="output">Kết quả</label>
+      <textarea id="output" placeholder="Kết quả sẽ hiện tại đây" readonly></textarea>
+      <div id="stat" class="stat right"></div>
+    </div>
+  </div>
   </div>
 </body>
 
