@@ -52,45 +52,74 @@ function safeReply(res, status, body) {
   }
 }
 
-// API proxy: /api/get-code?username=regcsuc48
+// API proxy: /api/get-code?username=regcsuc48 OR /api/get-code?username=test@ruutukf.com
 app.get('/api/get-code', async (req, res, next) => {
   try {
-    const username = (req.query.username || '').trim();
+    const input = (req.query.username || '').trim();
 
-    if (!username) {
-      return safeReply(res, 400, { error: 'Username is required' });
+    if (!input) {
+      return safeReply(res, 400, { error: 'Username or email is required' });
     }
 
-    const email = `${username}@batdongsanvgp.com`;
-    const encodedEmail = encodeURIComponent(email);
-    const apiUrl = `https://hunght1890.com/${encodedEmail}`;
+    let email;
+    let domain;
 
-    console.log('✅ Gọi tới:', apiUrl);
+    if (input.includes('@')) {
+      email = input;
+      domain = input.split('@')[1].toLowerCase();
+    } else {
+      email = `${input}@batdongsanvgp.com`;
+      domain = 'batdongsanvgp.com';
+    }
+
+    let apiUrl;
+    let isTempMailApi = false;
+
+    if (domain === 'batdongsanvgp.com' || domain === 'hunght1890.com') {
+      apiUrl = `https://hunght1890.com/${email}`;
+    } else if (domain === 'ruutukf.com') {
+      // Dedicated flow for ruutukf.com via temp-mail.io API
+      apiUrl = `https://api.internal.temp-mail.io/api/v3/email/${email}/messages`;
+      isTempMailApi = true;
+    } else {
+      // Default fallback
+      apiUrl = `https://api.internal.temp-mail.io/api/v3/email/${email}/messages`;
+      isTempMailApi = true;
+    }
+
+    console.log(`✅ [${domain}] Gọi tới:`, apiUrl);
 
     // ⚠️ Yêu cầu Node >= 18 để dùng fetch mặc định
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        // KHÔNG set User-Agent ở đây, để Node tự lo
       }
     });
 
     if (!response.ok) {
       return safeReply(res, response.status, {
-        error: `Remote HTTP ${response.status}: ${response.statusText}`
+        error: `Remote HTTP ${response.status}: ${response.statusText}`,
+        apiUrl
       });
     }
 
-    const data = await response.json();
+    let data = await response.json();
 
-    // Trả nguyên data về cho frontend dùng
+    // Chuẩn hóa dữ liệu temp-mail.io để tương thích với frontend hiện tại
+    if (isTempMailApi && Array.isArray(data)) {
+      data = data.map(item => ({
+        ...item,
+        body: item.body_html || item.body_text || ''
+      }));
+    }
+
+    // Trả data về cho frontend dùng
     safeReply(res, 200, { ok: true, email, raw: data });
 
   } catch (err) {
     console.error('❌ Lỗi proxy:', err);
     safeReply(res, 500, { ok: false, error: (err && err.message) ? err.message : 'Internal server error' });
-    // Also forward to Express error handler for visibility
     next(err);
   }
 });
