@@ -406,70 +406,88 @@
         const data = result.raw;
         addLog(`✓ API proxy trả về dữ liệu cho ${actualEmail}`, 'success');
 
-        if (Array.isArray(data) && data[0] && data[0].body) {
-          const body = data[0].body;
-          addLog('✓ Tìm thấy body', 'success');
-
-          // Lọc mã
-          let code = null;
-          let match;
-
-          // Cách 1: <b>12345678</b>
-          match = body.match(/<b[^>]*>(\d{8})<\/b>/);
-          if (match) code = match[1];
-
-          // Cách 2: **12345678**
-          if (!code) {
-            match = body.match(/\*\*(\d{8})\*\*/);
-            if (match) code = match[1];
-          }
-
-          // Cách 2.5: *12345678* (Garena text version)
-          if (!code) {
-            match = body.match(/\*(\d{8})\*/);
-            if (match) code = match[1];
-          }
-
-          // Cách 3: Bất kỳ 8 chữ số
-          if (!code) {
-            match = body.match(/\b(\d{8})\b/);
-            if (match) code = match[1];
-          }
-
-          if (code) {
-            // Kiểm tra mã mới có trùng với mã cũ không
-            if (currentCode !== null && code === currentCode && retryCount < MAX_RETRY) {
-              addLog(`⚠️ Mã "${code}" trùng với mã hiện tại, tự động lấy lại...`, 'info');
-              // Đợi 1 giây rồi retry
-              await new Promise(resolve => setTimeout(resolve, 1000));
+        if (Array.isArray(data)) {
+          if (data.length === 0) {
+            if (retryCount < 30) {
+              addLog(`Hộp thư trống, đang đợi email... (lần ${retryCount + 1}/30)`, 'info');
+              showResult(`⏳ Đang đợi email gửi tới hộp thư... (${retryCount + 1}/30)`, 'info');
+              // Đợi 3 giây rồi kiểm tra lại
+              await new Promise(resolve => setTimeout(resolve, 3000));
               return fetchCode(retryCount + 1);
-            }
-
-            // Cập nhật mã hiện tại
-            currentCode = code;
-
-            if (retryCount > 0) {
-              addLog(`✓ Tìm thấy mã mới: ${code} (sau ${retryCount} lần retry)`, 'success');
             } else {
-              addLog(`✓ Tìm thấy mã: ${code}`, 'success');
+              throw new Error('Hết thời gian chờ email (quá 30 lần thử).');
             }
-            showResult(`✅ Mã xác minh cho ${actualEmail}`, 'success', code);
-            // Tự động copy mã vào clipboard
-            await autoCopyCode(code);
+          }
+
+          if (data[0] && data[0].body) {
+            const body = data[0].body;
+            addLog('✓ Tìm thấy body', 'success');
+
+            // Lọc mã
+            let code = null;
+            let match;
+
+            // Cách 1: <b>12345678</b>
+            match = body.match(/<b[^>]*>(\d{8})<\/b>/);
+            if (match) code = match[1];
+
+            // Cách 2: **12345678**
+            if (!code) {
+              match = body.match(/\*\*(\d{8})\*\*/);
+              if (match) code = match[1];
+            }
+
+            // Cách 2.5: *12345678* (Garena text version)
+            if (!code) {
+              match = body.match(/\*(\d{8})\*/);
+              if (match) code = match[1];
+            }
+
+            // Cách 3: Bất kỳ 8 chữ số
+            if (!code) {
+              match = body.match(/\b(\d{8})\b/);
+              if (match) code = match[1];
+            }
+
+            if (code) {
+              // Kiểm tra mã mới có trùng với mã cũ không (có thể là email cũ)
+              if (currentCode !== null && code === currentCode && retryCount < MAX_RETRY + 30) {
+                addLog(`⚠️ Mã "${code}" trùng với mã cũ, tiếp tục đợi mã mới...`, 'info');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                return fetchCode(retryCount + 1);
+              }
+
+              // Cập nhật mã hiện tại
+              currentCode = code;
+
+              if (retryCount > 0) {
+                addLog(`✓ Tìm thấy mã mới: ${code} (sau ${retryCount} lần check)`, 'success');
+              } else {
+                addLog(`✓ Tìm thấy mã: ${code}`, 'success');
+              }
+              showResult(`✅ Mã xác minh cho ${actualEmail}`, 'success', code);
+              // Tự động copy mã vào clipboard
+              await autoCopyCode(code);
+            } else {
+              addLog('❌ Không tìm thấy mã 8 chữ số', 'error');
+              showResult('❌ Không tìm thấy mã xác minh trong email', 'error');
+            }
           } else {
-            addLog('❌ Không tìm thấy mã 8 chữ số', 'error');
-            showResult('❌ Không tìm thấy mã xác minh trong email', 'error');
+            throw new Error('Cấu trúc dữ liệu không hợp lệ (không có body)');
           }
         } else {
-          throw new Error('Cấu trúc dữ liệu không hợp lệ (không có body)');
+          throw new Error('Cấu trúc dữ liệu không hợp lệ (không phải mảng)');
         }
 
       } catch (error) {
         addLog(`❌ Lỗi: ${error.message}`, 'error');
         showResult(`❌ Lỗi: ${error.message}`, 'error');
       } finally {
-        btnText.textContent = originalText;
-        btn.disabled = false;
+        // Chỉ mờ nút khi đã kết thúc đệ quy
+        if (retryCount === 0 || error) {
+            btnText.textContent = originalText;
+            btn.disabled = false;
+        }
       }
     }
 
