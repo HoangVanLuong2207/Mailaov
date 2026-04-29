@@ -215,7 +215,7 @@
     <div class="input-group">
       <label for="username">Nhập Username:</label>
       <div style="display: flex; gap: 10px;">
-        <input type="text" id="username" value="regcsuc48" placeholder="VD: regcsuc48" style="flex: 2;">
+        <input type="text" id="username" value="" placeholder="" style="flex: 2;">
         <select id="domain"
           style="flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 5px; font-size: 1em; cursor: pointer;">
           <option value="batdongsanvgp.com">@batdongsanvgp.com (còn hỗ trợ)</option>
@@ -274,7 +274,7 @@
     function clearResult() {
       document.getElementById('result').classList.remove('show');
       document.getElementById('log').innerHTML = '';
-      document.getElementById('username').value = 'regcsuc48';
+      document.getElementById('username').value = '';
       document.getElementById('btn-text').textContent = 'Lấy Mã Xác Minh';
       document.getElementById('btn-copy').disabled = true;
     }
@@ -485,8 +485,8 @@
       } finally {
         // Chỉ mờ nút khi đã kết thúc đệ quy
         if (retryCount === 0 || error) {
-            btnText.textContent = originalText;
-            btn.disabled = false;
+          btnText.textContent = originalText;
+          btn.disabled = false;
         }
       }
     }

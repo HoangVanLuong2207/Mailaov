@@ -52,7 +52,7 @@ function safeReply(res, status, body) {
   }
 }
 
-// API proxy: /api/get-code?username=regcsuc48 OR /api/get-code?username=test@ruutukf.com
+// API proxy: /api/get-code?username= OR /api/get-code?username=test@ruutukf.com
 app.get('/api/get-code', async (req, res, next) => {
   try {
     const input = (req.query.username || '').trim();
@@ -105,22 +105,22 @@ app.get('/api/get-code', async (req, res, next) => {
             console.log(`❕ Chưa có hộp thư ${email}, đang tiến hành tạo mới...`);
             const name = email.split('@')[0];
             const domainStr = email.split('@')[1];
-            
+
             const createReq = await fetch('https://api.internal.temp-mail.io/api/v3/email/new', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, domain: domainStr })
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, domain: domainStr })
             });
-            
+
             if (createReq.ok) {
-                console.log(`✅ Đã tạo mới hộp thư thành công: ${email}`);
-                return safeReply(res, 200, { ok: true, email, raw: [] });
+              console.log(`✅ Đã tạo mới hộp thư thành công: ${email}`);
+              return safeReply(res, 200, { ok: true, email, raw: [] });
             } else {
-                return safeReply(res, 200, { ok: false, error: 'Không thể khởi tạo hộp thư: HTTP ' + createReq.status });
+              return safeReply(res, 200, { ok: false, error: 'Không thể khởi tạo hộp thư: HTTP ' + createReq.status });
             }
           }
-        } catch(e) {
-            console.error("❌ Lỗi khi tự động tạo mailbox:", e);
+        } catch (e) {
+          console.error("❌ Lỗi khi tự động tạo mailbox:", e);
         }
       }
       return safeReply(res, response.status, {
