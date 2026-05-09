@@ -365,6 +365,10 @@
                     <div class="stat-value" id="tool2NotMatchCount">0</div>
                     <div class="stat-label">Không Khớp</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool2ReverseNotMatchCount">0</div>
+                    <div class="stat-label">Dư Ở List 1</div>
+                </div>
             </div>
 
             <div class="output-section" id="tool2OutputSection" style="display: none;">
@@ -381,6 +385,15 @@
                     readonly></textarea>
                 <div class="button-group">
                     <button class="btn-copy" onclick="tool2_copy('notmatched')">📋 Copy Kết Quả Không Khớp</button>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool2OutputSection3" style="display: none;">
+                <h2>⚠️ Dòng Dư Ở List 1 (Có trong List 1 nhưng không có ở List 2)</h2>
+                <textarea id="tool2OutputReverseNotMatched" placeholder="Các dòng dư ở List 1 sẽ hiển thị ở đây..."
+                    readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool2_copy('reversenotmatched')">📋 Copy Kết Quả Dư List 1</button>
                 </div>
             </div>
         </div>
@@ -665,31 +678,52 @@
 
                     if (list1[key]) {
                         matched.push(trimmed);
+                        list1[key] = false; // Đánh dấu là đã khớp
                     } else {
                         notMatched.push(key);
                     }
                 }
             });
 
+            const reverseNotMatched = [];
+            for (const key in list1) {
+                if (list1[key] === true) {
+                    reverseNotMatched.push(key);
+                }
+            }
+
             document.getElementById('tool2List1Count').textContent = list1Lines.length;
             document.getElementById('tool2List2Count').textContent = list2Lines.length;
             document.getElementById('tool2MatchCount').textContent = matched.length;
             document.getElementById('tool2NotMatchCount').textContent = notMatched.length;
+            document.getElementById('tool2ReverseNotMatchCount').textContent = reverseNotMatched.length;
             document.getElementById('tool2Stats').style.display = 'grid';
 
             document.getElementById('tool2OutputMatched').value = matched.join('\n');
             document.getElementById('tool2OutputNotMatched').value = notMatched.join('\n');
+            document.getElementById('tool2OutputReverseNotMatched').value = reverseNotMatched.join('\n');
             document.getElementById('tool2OutputSection').style.display = 'block';
             document.getElementById('tool2OutputSection2').style.display = 'block';
+            document.getElementById('tool2OutputSection3').style.display = 'block';
 
             const percentage = list2Lines.length > 0 ? ((matched.length / list2Lines.length) * 100).toFixed(2) : 0;
             showMessage('tool2Message', `✅ Hoàn tất! Tìm được ${matched.length}/${list2Lines.length} dòng khớp (${percentage}%)`, 'success');
         }
 
         function tool2_copy(type) {
-            const outputEl = type === 'matched' ?
-                document.getElementById('tool2OutputMatched') :
-                document.getElementById('tool2OutputNotMatched');
+            let outputEl;
+            let typeName = '';
+
+            if (type === 'matched') {
+                outputEl = document.getElementById('tool2OutputMatched');
+                typeName = 'kết quả khớp';
+            } else if (type === 'notmatched') {
+                outputEl = document.getElementById('tool2OutputNotMatched');
+                typeName = 'kết quả không khớp';
+            } else if (type === 'reversenotmatched') {
+                outputEl = document.getElementById('tool2OutputReverseNotMatched');
+                typeName = 'kết quả dư List 1';
+            }
 
             if (!outputEl.value) {
                 showMessage('tool2Message', '⚠️ Không có dữ liệu để copy!', 'warning');
@@ -698,7 +732,7 @@
 
             outputEl.select();
             document.execCommand('copy');
-            showMessage('tool2Message', `✅ Đã copy ${type === 'matched' ? 'kết quả khớp' : 'kết quả không khớp'} vào clipboard!`, 'success');
+            showMessage('tool2Message', `✅ Đã copy ${typeName} vào clipboard!`, 'success');
         }
 
         // ==================== TOOL 3: user|pass|newpass → user|newpass ====================
