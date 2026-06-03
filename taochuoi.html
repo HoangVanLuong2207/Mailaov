@@ -279,6 +279,7 @@
             <button class="nav-tab" onclick="switchTab('tool3')">📝 Lọc user|newpass</button>
             <button class="nav-tab" onclick="switchTab('tool4')">🗑️ Xóa Theo Prefix</button>
             <button class="nav-tab" onclick="switchTab('tool5')">🔄 JSON ➔ TXT</button>
+            <button class="nav-tab" onclick="switchTab('tool6')">🔍 Khớp User|Pass|Mail</button>
         </div>
 
         <!-- TAB 1: Lọc user|pass từ user|pass|newpass -->
@@ -544,6 +545,68 @@
                 <div class="button-group">
                     <button class="btn-copy" onclick="tool5_copy()">📋 Copy kết quả</button>
                     <button class="btn-clear" onclick="tool5_clearOutput()">🗑️ Xóa output</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: Khớp User|Pass|Mail -->
+        <div class="tab-content" id="tool6">
+            <div class="input-section">
+                <div class="section">
+                    <h2>📥 Danh sách 1: user|pass</h2>
+                    <textarea id="tool6List1" placeholder="Dán danh sách user|pass ở đây, mỗi dòng một mục..."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool6_clearList(1)">🗑️ Xóa</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>📥 Danh sách 2: user|pass|mail</h2>
+                    <textarea id="tool6List2" placeholder="Dán danh sách user|pass|mail ở đây, mỗi dòng một mục..."></textarea>
+                    <div class="button-group">
+                        <button class="btn-clear" onclick="tool6_clearList(2)">🗑️ Xóa</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="tool6_process()">🔍 So Sánh & Lọc</button>
+            </div>
+
+            <div id="tool6Message"></div>
+
+            <div class="stats" id="tool6Stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" id="tool6List1Count">0</div>
+                    <div class="stat-label">Dòng List 1 (user|pass)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool6List2Count">0</div>
+                    <div class="stat-label">Dòng List 2 (user|pass|mail)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool6MatchedCount">0</div>
+                    <div class="stat-label">Trùng</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool6NotMatchedCount">0</div>
+                    <div class="stat-label">Không trùng</div>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool6OutputSectionMatched" style="display: none;">
+                <h2>✅ Trùng (user|pass|mail có trong List 1)</h2>
+                <textarea id="tool6OutputMatched" placeholder="Các dòng trùng sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool6_copy('matched')">📋 Copy Trùng</button>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool6OutputSectionNotMatched" style="display: none;">
+                <h2>❌ Không Trùng (user|pass|mail không có trong List 1)</h2>
+                <textarea id="tool6OutputNotMatched" placeholder="Các dòng không trùng sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool6_copy('notmatched')">📋 Copy Không Trùng</button>
                 </div>
             </div>
         </div>
@@ -969,6 +1032,91 @@
             document.getElementById('tool5Total').textContent = '0';
             document.getElementById('tool5Success').textContent = '0';
             document.getElementById('tool5Error').textContent = '0';
+        }
+
+        // ==================== TOOL 6: So sánh user|pass với user|pass|mail ====================
+        function tool6_clearList(num) {
+            document.getElementById(`tool6List${num}`).value = '';
+            document.getElementById(`tool6List${num}`).focus();
+        }
+
+        function tool6_process() {
+            const list1Text = document.getElementById('tool6List1').value.trim();
+            const list2Text = document.getElementById('tool6List2').value.trim();
+
+            if (!list1Text || !list2Text) {
+                showMessage('tool6Message', '⚠️ Vui lòng nhập dữ liệu vào cả hai danh sách!', 'warning');
+                return;
+            }
+
+            // Parse list 1 (user|pass)
+            const list1 = {};
+            const list1Lines = list1Text.split('\n').filter(l => l.trim());
+
+            list1Lines.forEach(line => {
+                const trimmed = line.trim();
+                const parts = trimmed.split('|').map(p => p.trim());
+                if (parts.length >= 2) {
+                    const key = `${parts[0]}|${parts[1]}`;
+                    list1[key] = true;
+                }
+            });
+
+            // Parse list 2 (user|pass|mail)
+            const list2Lines = list2Text.split('\n').filter(l => l.trim());
+            const matched = [];
+            const notMatched = [];
+
+            list2Lines.forEach(line => {
+                const trimmed = line.trim();
+                const parts = trimmed.split('|').map(p => p.trim());
+                if (parts.length >= 2) {
+                    const key = `${parts[0]}|${parts[1]}`;
+                    if (list1[key]) {
+                        matched.push(trimmed);
+                    } else {
+                        notMatched.push(trimmed);
+                    }
+                } else {
+                    notMatched.push(trimmed);
+                }
+            });
+
+            document.getElementById('tool6List1Count').textContent = list1Lines.length;
+            document.getElementById('tool6List2Count').textContent = list2Lines.length;
+            document.getElementById('tool6MatchedCount').textContent = matched.length;
+            document.getElementById('tool6NotMatchedCount').textContent = notMatched.length;
+            document.getElementById('tool6Stats').style.display = 'grid';
+
+            document.getElementById('tool6OutputMatched').value = matched.join('\n');
+            document.getElementById('tool6OutputNotMatched').value = notMatched.join('\n');
+            
+            document.getElementById('tool6OutputSectionMatched').style.display = 'block';
+            document.getElementById('tool6OutputSectionNotMatched').style.display = 'block';
+
+            showMessage('tool6Message', `✅ Lọc thành công! Trùng: ${matched.length}, Không trùng: ${notMatched.length}`, 'success');
+        }
+
+        function tool6_copy(type) {
+            let outputEl;
+            let typeName = '';
+
+            if (type === 'matched') {
+                outputEl = document.getElementById('tool6OutputMatched');
+                typeName = 'trùng';
+            } else if (type === 'notmatched') {
+                outputEl = document.getElementById('tool6OutputNotMatched');
+                typeName = 'không trùng';
+            }
+
+            if (!outputEl || !outputEl.value) {
+                showMessage('tool6Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+
+            outputEl.select();
+            document.execCommand('copy');
+            showMessage('tool6Message', `✅ Đã copy danh sách ${typeName} vào clipboard!`, 'success');
         }
     </script>
 </body>
