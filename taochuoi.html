@@ -279,7 +279,7 @@
             <button class="nav-tab" onclick="switchTab('tool3')">📝 Lọc user|newpass</button>
             <button class="nav-tab" onclick="switchTab('tool4')">🗑️ Xóa Theo Prefix</button>
             <button class="nav-tab" onclick="switchTab('tool5')">🔄 JSON ➔ TXT</button>
-            <button class="nav-tab" onclick="switchTab('tool6')">🔍 Khớp User|Pass|Mail</button>
+            <button class="nav-tab" onclick="switchTab('tool6')">🔍 Khớp Theo User (Linh động)</button>
         </div>
 
         <!-- TAB 1: Lọc user|pass từ user|pass|newpass -->
@@ -553,19 +553,34 @@
         <div class="tab-content" id="tool6">
             <div class="input-section">
                 <div class="section">
-                    <h2>📥 Danh sách 1: user|pass</h2>
-                    <textarea id="tool6List1" placeholder="Dán danh sách user|pass ở đây, mỗi dòng một mục..."></textarea>
+                    <h2>📥 Danh sách 1 (Ví dụ: user|pass hoặc user)</h2>
+                    <textarea id="tool6List1" placeholder="Dán danh sách ở đây. Tự động lấy cột đầu tiên (user) để so khớp..."></textarea>
                     <div class="button-group">
                         <button class="btn-clear" onclick="tool6_clearList(1)">🗑️ Xóa</button>
                     </div>
                 </div>
 
                 <div class="section">
-                    <h2>📥 Danh sách 2: user|pass|mail</h2>
-                    <textarea id="tool6List2" placeholder="Dán danh sách user|pass|mail ở đây, mỗi dòng một mục..."></textarea>
+                    <h2>📥 Danh sách 2 (Ví dụ: user|pass|mail hoặc user)</h2>
+                    <textarea id="tool6List2" placeholder="Dán danh sách ở đây. Tự động lấy cột đầu tiên (user) để so khớp..."></textarea>
                     <div class="button-group">
                         <button class="btn-clear" onclick="tool6_clearList(2)">🗑️ Xóa</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Tùy chọn định dạng kết quả trả ra linh động -->
+            <div class="section" style="background: #fdfdfd; border: 1px dashed #667eea; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea; display: flex; align-items: center; gap: 5px;">⚙️ Tùy chọn định dạng kết quả trùng:</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+                        <input type="radio" name="tool6OutputFormat" value="list2" checked style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>Giữ định dạng Danh sách 2 (Ví dụ: user|pass|mail)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+                        <input type="radio" name="tool6OutputFormat" value="list1" style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>Lấy định dạng Danh sách 1 (Ví dụ: user|pass)</span>
+                    </label>
                 </div>
             </div>
 
@@ -578,11 +593,11 @@
             <div class="stats" id="tool6Stats" style="display: none;">
                 <div class="stat-item">
                     <div class="stat-value" id="tool6List1Count">0</div>
-                    <div class="stat-label">Dòng List 1 (user|pass)</div>
+                    <div class="stat-label">Dòng List 1</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="tool6List2Count">0</div>
-                    <div class="stat-label">Dòng List 2 (user|pass|mail)</div>
+                    <div class="stat-label">Dòng List 2</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="tool6MatchedCount">0</div>
@@ -595,7 +610,7 @@
             </div>
 
             <div class="output-section" id="tool6OutputSectionMatched" style="display: none;">
-                <h2>✅ Trùng (user|pass|mail có trong List 1)</h2>
+                <h2>✅ Trùng (Có trong List 1)</h2>
                 <textarea id="tool6OutputMatched" placeholder="Các dòng trùng sẽ hiển thị ở đây..." readonly></textarea>
                 <div class="button-group">
                     <button class="btn-copy" onclick="tool6_copy('matched')">📋 Copy Trùng</button>
@@ -603,7 +618,7 @@
             </div>
 
             <div class="output-section" id="tool6OutputSectionNotMatched" style="display: none;">
-                <h2>❌ Không Trùng (user|pass|mail không có trong List 1)</h2>
+                <h2>❌ Không Trùng (Không có trong List 1)</h2>
                 <textarea id="tool6OutputNotMatched" placeholder="Các dòng không trùng sẽ hiển thị ở đây..." readonly></textarea>
                 <div class="button-group">
                     <button class="btn-copy" onclick="tool6_copy('notmatched')">📋 Copy Không Trùng</button>
@@ -1034,7 +1049,7 @@
             document.getElementById('tool5Error').textContent = '0';
         }
 
-        // ==================== TOOL 6: So sánh user|pass với user|pass|mail ====================
+        // ==================== TOOL 6: So sánh linh động dựa trên cột User đầu tiên ====================
         function tool6_clearList(num) {
             document.getElementById(`tool6List${num}`).value = '';
             document.getElementById(`tool6List${num}`).focus();
@@ -1049,20 +1064,23 @@
                 return;
             }
 
-            // Parse list 1 (user|pass)
+            // Lấy định dạng output mong muốn
+            const outputFormat = document.querySelector('input[name="tool6OutputFormat"]:checked').value;
+
+            // Parse list 1 (lấy cột đầu tiên làm user và lowercase để so khớp linh động, lưu lại dòng gốc)
             const list1 = {};
             const list1Lines = list1Text.split('\n').filter(l => l.trim());
 
             list1Lines.forEach(line => {
                 const trimmed = line.trim();
                 const parts = trimmed.split('|').map(p => p.trim());
-                if (parts.length >= 2) {
-                    const key = `${parts[0]}|${parts[1]}`;
-                    list1[key] = true;
+                if (parts.length >= 1 && parts[0]) {
+                    const key = parts[0].toLowerCase();
+                    list1[key] = trimmed; // Lưu lại dòng gốc của List 1
                 }
             });
 
-            // Parse list 2 (user|pass|mail)
+            // Parse list 2 và đối chiếu
             const list2Lines = list2Text.split('\n').filter(l => l.trim());
             const matched = [];
             const notMatched = [];
@@ -1070,10 +1088,15 @@
             list2Lines.forEach(line => {
                 const trimmed = line.trim();
                 const parts = trimmed.split('|').map(p => p.trim());
-                if (parts.length >= 2) {
-                    const key = `${parts[0]}|${parts[1]}`;
+                if (parts.length >= 1 && parts[0]) {
+                    const key = parts[0].toLowerCase();
                     if (list1[key]) {
-                        matched.push(trimmed);
+                        // Trả ra linh động theo lựa chọn của user
+                        if (outputFormat === 'list1') {
+                            matched.push(list1[key]);
+                        } else {
+                            matched.push(trimmed);
+                        }
                     } else {
                         notMatched.push(trimmed);
                     }
