@@ -280,6 +280,7 @@
             <button class="nav-tab" onclick="switchTab('tool4')">🗑️ Xóa Theo Prefix</button>
             <button class="nav-tab" onclick="switchTab('tool5')">🔄 JSON ➔ TXT</button>
             <button class="nav-tab" onclick="switchTab('tool6')">🔍 Khớp Theo User (Linh động)</button>
+            <button class="nav-tab" onclick="switchTab('tool7')">🔎 Tìm & Lọc Dòng Trùng</button>
         </div>
 
         <!-- TAB 1: Lọc user|pass từ user|pass|newpass -->
@@ -622,6 +623,76 @@
                 <textarea id="tool6OutputNotMatched" placeholder="Các dòng không trùng sẽ hiển thị ở đây..." readonly></textarea>
                 <div class="button-group">
                     <button class="btn-copy" onclick="tool6_copy('notmatched')">📋 Copy Không Trùng</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 7: Tìm & Lọc Dòng Trùng -->
+        <div class="tab-content" id="tool7">
+            <div class="section">
+                <h2>📥 Dán danh sách cần kiểm tra trùng</h2>
+                <textarea id="tool7Input" placeholder="Dán danh sách ở đây, mỗi dòng một mục..."></textarea>
+                <div class="button-group">
+                    <button class="btn-clear" onclick="tool7_clear()">🗑️ Xóa input</button>
+                </div>
+            </div>
+
+            <!-- Tùy chọn chế độ so trùng -->
+            <div class="section" style="background: #fdfdfd; border: 1px dashed #667eea; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="font-size: 14px; margin-bottom: 10px; color: #667eea; display: flex; align-items: center; gap: 5px;">⚙️ Chế độ so trùng:</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+                        <input type="radio" name="tool7Mode" value="full" checked style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>So trùng toàn bộ dòng</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px;">
+                        <input type="radio" name="tool7Mode" value="user" style="cursor: pointer; width: 16px; height: 16px;">
+                        <span>So trùng theo cột đầu tiên (user — trước dấu |)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="tool7_process()">🔎 Tìm Dòng Trùng</button>
+            </div>
+
+            <div id="tool7Message"></div>
+
+            <div class="section">
+                <h2>📊 Thống kê</h2>
+                <div class="stats" id="tool7Stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool7Total">0</div>
+                        <div class="stat-label">Tổng dòng</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool7Unique">0</div>
+                        <div class="stat-label">Dòng duy nhất</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool7DupLines">0</div>
+                        <div class="stat-label">Dòng bị trùng</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="tool7DupGroups">0</div>
+                        <div class="stat-label">Nhóm trùng</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool7OutputSectionUnique" style="display: none;">
+                <h2>✅ Dòng Duy Nhất (đã loại trùng)</h2>
+                <textarea id="tool7OutputUnique" placeholder="Các dòng duy nhất sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool7_copy('unique')">📋 Copy Dòng Duy Nhất</button>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool7OutputSectionDup" style="display: none;">
+                <h2>🔴 Các Dòng Trùng (kèm số lần xuất hiện)</h2>
+                <textarea id="tool7OutputDup" placeholder="Các dòng trùng sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool7_copy('dup')">📋 Copy Dòng Trùng</button>
                 </div>
             </div>
         </div>
@@ -1140,6 +1211,101 @@
             outputEl.select();
             document.execCommand('copy');
             showMessage('tool6Message', `✅ Đã copy danh sách ${typeName} vào clipboard!`, 'success');
+        }
+
+        // ==================== TOOL 7: Tìm & Lọc Dòng Trùng ====================
+        function tool7_clear() {
+            document.getElementById('tool7Input').value = '';
+            document.getElementById('tool7Input').focus();
+        }
+
+        function tool7_process() {
+            const input = document.getElementById('tool7Input').value.trim();
+
+            if (!input) {
+                showMessage('tool7Message', '⚠️ Vui lòng nhập dữ liệu!', 'warning');
+                return;
+            }
+
+            const mode = document.querySelector('input[name="tool7Mode"]:checked').value;
+            const lines = input.split('\n').map(l => l.trim()).filter(l => l);
+
+            // Đếm số lần xuất hiện theo key
+            const countMap = new Map();
+            // Lưu dòng gốc đầu tiên tương ứng với mỗi key
+            const firstLineMap = new Map();
+
+            lines.forEach(line => {
+                let key;
+                if (mode === 'user') {
+                    key = line.split('|')[0].trim().toLowerCase();
+                } else {
+                    key = line;
+                }
+
+                if (!firstLineMap.has(key)) {
+                    firstLineMap.set(key, line);
+                }
+                countMap.set(key, (countMap.get(key) || 0) + 1);
+            });
+
+            const uniqueLines = [];
+            const dupLines = [];
+            let dupGroupCount = 0;
+            let dupLineCount = 0;
+
+            countMap.forEach((count, key) => {
+                const originalLine = firstLineMap.get(key);
+                if (count === 1) {
+                    uniqueLines.push(originalLine);
+                } else {
+                    dupGroupCount++;
+                    dupLineCount += count;
+                    dupLines.push(`[${count}x] ${originalLine}`);
+                    uniqueLines.push(originalLine); // Giữ lại 1 bản duy nhất
+                }
+            });
+
+            // Cập nhật stats
+            document.getElementById('tool7Total').textContent = lines.length;
+            document.getElementById('tool7Unique').textContent = uniqueLines.length;
+            document.getElementById('tool7DupLines').textContent = dupLineCount;
+            document.getElementById('tool7DupGroups').textContent = dupGroupCount;
+            document.getElementById('tool7Stats').style.display = 'grid';
+
+            document.getElementById('tool7OutputUnique').value = uniqueLines.join('\n');
+            document.getElementById('tool7OutputDup').value = dupLines.join('\n');
+
+            document.getElementById('tool7OutputSectionUnique').style.display = 'block';
+            document.getElementById('tool7OutputSectionDup').style.display = 'block';
+
+            if (dupGroupCount === 0) {
+                showMessage('tool7Message', `✅ Không có dòng trùng! Tất cả ${lines.length} dòng đều duy nhất.`, 'success');
+            } else {
+                showMessage('tool7Message', `✅ Tìm thấy ${dupGroupCount} nhóm trùng (${dupLineCount} dòng bị trùng). Đã giữ lại ${uniqueLines.length} dòng duy nhất.`, 'info');
+            }
+        }
+
+        function tool7_copy(type) {
+            let outputEl;
+            let typeName = '';
+
+            if (type === 'unique') {
+                outputEl = document.getElementById('tool7OutputUnique');
+                typeName = 'dòng duy nhất';
+            } else if (type === 'dup') {
+                outputEl = document.getElementById('tool7OutputDup');
+                typeName = 'dòng trùng';
+            }
+
+            if (!outputEl || !outputEl.value) {
+                showMessage('tool7Message', '⚠️ Không có dữ liệu để copy!', 'warning');
+                return;
+            }
+
+            outputEl.select();
+            document.execCommand('copy');
+            showMessage('tool7Message', `✅ Đã copy danh sách ${typeName} vào clipboard!`, 'success');
         }
     </script>
 </body>
