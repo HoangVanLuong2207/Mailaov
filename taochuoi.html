@@ -605,8 +605,12 @@
                     <div class="stat-label">Trùng</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="tool6NotMatchedCount">0</div>
-                    <div class="stat-label">Không trùng</div>
+                    <div class="stat-value" id="tool6NotMatchedList1Count">0</div>
+                    <div class="stat-label">Dư Ở List 1</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tool6NotMatchedList2Count">0</div>
+                    <div class="stat-label">Dư Ở List 2</div>
                 </div>
             </div>
 
@@ -618,11 +622,19 @@
                 </div>
             </div>
 
-            <div class="output-section" id="tool6OutputSectionNotMatched" style="display: none;">
-                <h2>❌ Không Trùng (Không có trong List 1)</h2>
-                <textarea id="tool6OutputNotMatched" placeholder="Các dòng không trùng sẽ hiển thị ở đây..." readonly></textarea>
+            <div class="output-section" id="tool6OutputSectionNotMatchedList1" style="display: none;">
+                <h2>⚠️ Dư Ở List 1 (Có trong List 1 nhưng không có ở List 2)</h2>
+                <textarea id="tool6OutputNotMatchedList1" placeholder="Các dòng dư ở List 1 sẽ hiển thị ở đây..." readonly></textarea>
                 <div class="button-group">
-                    <button class="btn-copy" onclick="tool6_copy('notmatched')">📋 Copy Không Trùng</button>
+                    <button class="btn-copy" onclick="tool6_copy('notmatchedlist1')">📋 Copy Dư List 1</button>
+                </div>
+            </div>
+
+            <div class="output-section" id="tool6OutputSectionNotMatchedList2" style="display: none;">
+                <h2>❌ Dư Ở List 2 (Có trong List 2 nhưng không có ở List 1)</h2>
+                <textarea id="tool6OutputNotMatchedList2" placeholder="Các dòng dư ở List 2 sẽ hiển thị ở đây..." readonly></textarea>
+                <div class="button-group">
+                    <button class="btn-copy" onclick="tool6_copy('notmatchedlist2')">📋 Copy Dư List 2</button>
                 </div>
             </div>
         </div>
@@ -1140,6 +1152,7 @@
 
             // Parse list 1 (lấy cột đầu tiên làm user và lowercase để so khớp linh động, lưu lại dòng gốc)
             const list1 = {};
+            const list1Matched = {}; // Đánh dấu user nào đã khớp
             const list1Lines = list1Text.split('\n').filter(l => l.trim());
 
             list1Lines.forEach(line => {
@@ -1148,20 +1161,22 @@
                 if (parts.length >= 1 && parts[0]) {
                     const key = parts[0].toLowerCase();
                     list1[key] = trimmed; // Lưu lại dòng gốc của List 1
+                    list1Matched[key] = false; // Chưa khớp
                 }
             });
 
             // Parse list 2 và đối chiếu
             const list2Lines = list2Text.split('\n').filter(l => l.trim());
             const matched = [];
-            const notMatched = [];
+            const notMatchedList2 = []; // Dư ở List 2 (có trong List 2 nhưng không có ở List 1)
 
             list2Lines.forEach(line => {
                 const trimmed = line.trim();
                 const parts = trimmed.split('|').map(p => p.trim());
                 if (parts.length >= 1 && parts[0]) {
                     const key = parts[0].toLowerCase();
-                    if (list1[key]) {
+                    if (list1[key] !== undefined) {
+                        list1Matched[key] = true; // Đánh dấu đã khớp
                         // Trả ra linh động theo lựa chọn của user
                         if (outputFormat === 'list1') {
                             matched.push(list1[key]);
@@ -1169,26 +1184,37 @@
                             matched.push(trimmed);
                         }
                     } else {
-                        notMatched.push(trimmed);
+                        notMatchedList2.push(trimmed);
                     }
                 } else {
-                    notMatched.push(trimmed);
+                    notMatchedList2.push(trimmed);
                 }
             });
+
+            // Tìm các dòng dư ở List 1 (có trong List 1 nhưng không có ở List 2)
+            const notMatchedList1 = [];
+            for (const key in list1Matched) {
+                if (list1Matched[key] === false) {
+                    notMatchedList1.push(list1[key]);
+                }
+            }
 
             document.getElementById('tool6List1Count').textContent = list1Lines.length;
             document.getElementById('tool6List2Count').textContent = list2Lines.length;
             document.getElementById('tool6MatchedCount').textContent = matched.length;
-            document.getElementById('tool6NotMatchedCount').textContent = notMatched.length;
+            document.getElementById('tool6NotMatchedList1Count').textContent = notMatchedList1.length;
+            document.getElementById('tool6NotMatchedList2Count').textContent = notMatchedList2.length;
             document.getElementById('tool6Stats').style.display = 'grid';
 
             document.getElementById('tool6OutputMatched').value = matched.join('\n');
-            document.getElementById('tool6OutputNotMatched').value = notMatched.join('\n');
+            document.getElementById('tool6OutputNotMatchedList1').value = notMatchedList1.join('\n');
+            document.getElementById('tool6OutputNotMatchedList2').value = notMatchedList2.join('\n');
             
             document.getElementById('tool6OutputSectionMatched').style.display = 'block';
-            document.getElementById('tool6OutputSectionNotMatched').style.display = 'block';
+            document.getElementById('tool6OutputSectionNotMatchedList1').style.display = 'block';
+            document.getElementById('tool6OutputSectionNotMatchedList2').style.display = 'block';
 
-            showMessage('tool6Message', `✅ Lọc thành công! Trùng: ${matched.length}, Không trùng: ${notMatched.length}`, 'success');
+            showMessage('tool6Message', `✅ Lọc thành công! Trùng: ${matched.length}, Dư List 1: ${notMatchedList1.length}, Dư List 2: ${notMatchedList2.length}`, 'success');
         }
 
         function tool6_copy(type) {
@@ -1198,9 +1224,12 @@
             if (type === 'matched') {
                 outputEl = document.getElementById('tool6OutputMatched');
                 typeName = 'trùng';
-            } else if (type === 'notmatched') {
-                outputEl = document.getElementById('tool6OutputNotMatched');
-                typeName = 'không trùng';
+            } else if (type === 'notmatchedlist1') {
+                outputEl = document.getElementById('tool6OutputNotMatchedList1');
+                typeName = 'dư List 1';
+            } else if (type === 'notmatchedlist2') {
+                outputEl = document.getElementById('tool6OutputNotMatchedList2');
+                typeName = 'dư List 2';
             }
 
             if (!outputEl || !outputEl.value) {
